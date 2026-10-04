@@ -47,6 +47,12 @@
   .navbtn:hover b{color:var(--wine)}
   .chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap}
   .chip.click{cursor:pointer}.chip.click:hover{border-color:var(--wine);color:var(--wine)}
+  .navbtn.pdwrap{position:relative}
+  .pdmenu{position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.14);min-width:210px;max-height:320px;overflow-y:auto;z-index:50;display:none;padding:6px;cursor:default}
+  .pdmenu.show{display:block}
+  .pdmenu .pditem{padding:8px 12px;border-radius:8px;font-size:13.5px;cursor:pointer;color:var(--ink);font-weight:600;white-space:nowrap}
+  .pdmenu .pditem:hover{background:var(--surface);color:var(--wine)}
+  .pdmenu .pditem.active{background:var(--wine);color:#fff}
 
   .cols{display:grid;grid-template-columns:290px 1fr;gap:20px;padding:18px 20px 0;align-items:start}
   @media(max-width:820px){.cols{grid-template-columns:1fr}}
@@ -210,7 +216,7 @@
   <div class="topbar">
     <button class="backbtn" id="backBtn" onclick="goBack()" title="Zpět">← Zpět</button><img src="" class="crestimg"><div class="label">IDP <span>CAFC</span></div>
     <div class="sp"></div>
-    <div class="navbtn" id="clubChip" onclick="backToClubs()"><span class="nb-l">Klub</span><b id="clubName">ČAFC</b> ▾</div><div class="navbtn" id="teamChip" onclick="backToTeams()"><span class="nb-l">Tým</span><b id="teamName">U14</b> ▾</div><div class="chip" id="periodPill">—</div>
+    <div class="navbtn" id="clubChip" onclick="backToClubs()"><span class="nb-l">Klub</span><b id="clubName">ČAFC</b> ▾</div><div class="navbtn" id="teamChip" onclick="backToTeams()"><span class="nb-l">Tým</span><b id="teamName">U14</b> ▾</div><div class="navbtn pdwrap" id="periodPill" onclick="togglePeriodMenu(event)"><span class="nb-l">Období</span><b id="periodName">—</b> ▾<div class="pdmenu" id="periodMenu"></div></div>
   </div>
   <div class="cols">
     <div class="roster">
@@ -235,8 +241,11 @@ const FOTBAL={
 const POS_GROUPS=[{name:'Brankáři',color:'#8854d0',codes:['BR','GK']},{name:'Obránci',color:'#C7153E',codes:['O','SB','CB','WB']},{name:'Záložníci',color:'#2d98da',codes:['SZ','KZ','CDM','CM','CAM','SM']},{name:'Útočníci',color:'#4E8C1C',codes:['Ú','WF','ST']}];
 const POS_LABEL={BR:'Brankář',O:'Obránce',SZ:'Střední záložník',KZ:'Krajní záložník','Ú':'Útočník',GK:'Brankář',SB:'Krajní obránce',CB:'Střední obránce',WB:'Krajní ofenzivní bek',CDM:'Defenzivní záložník',CM:'Střední záložník',CAM:'Ofenzivní záložník',SM:'Krajní záložník',WF:'Křídelník',ST:'Útočník'};
 function groupOfPos(code){for(const g of POS_GROUPS){if(g.codes.includes(code))return g.name}return 'Ostatní'}
+const HLAVA_LABELS={player:[{q:'Jak moc se těším na tréninky?',lo:'Vůbec',hi:'Moc'},{q:'Jak moc chci vyhrávat?',lo:'Je mi to jedno',hi:'Nesnáším prohry'},{q:'Jak si věřím, že se můžu zlepšit?',lo:'Nevěřím si',hi:'Určitě se zlepším'}],coach:[{q:'Jak je podle tebe motivovaný?',lo:'Vlažný',hi:'Hoří pro to'},{q:'Jak je soutěživý?',lo:'Je mu to jedno',hi:'Musí vyhrát'},{q:'Jak zvládá nezdar (gól, prohra, chyba)?',lo:'Sype ho to',hi:'Zvedne se hned'}]};
+const TYM_LABELS={player:[{q:'Cítím se v týmu dobře a bezpečně?',lo:'Vůbec',hi:'Úplně'},{q:'Věřím tomu, co spolu na trénincích děláme?',lo:'Moc ne',hi:'Naplno'}],coach:[{q:'Jak je začleněný v týmu?',lo:'Na okraji',hi:'Součást party'},{q:'Jak spolupracuje se spoluhráči?',lo:'Sólista',hi:'Týmový hráč'}]};
+function hlavaTymPairs(who){return HLAVA_LABELS[who].concat(TYM_LABELS[who]).map(function(it,i,arr){const hn=HLAVA_LABELS[who].length;return {q:it.q,key:(i<hn?('h:'+i):('t:'+(i-hn)))};});}
 // ============ ŽIVÁ DATA Z BACKENDU ============
-const API_URL = "https://script.google.com/macros/s/AKfycbyJvXsrtRijwgZrru0L40VVQJWifkO1bnhAMkl33nCjX5SDVVrlK9493oVSVb4C0R-t/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxk67UDuz2YgDNDB2ATmcpMrrf97XoS2L86vKuaUz8rC-EEQWhXIAlp7_CgyIx8IVOZog/exec";
 let DB = { players:[], coaches:[], responses:[] };
 // Aktuální období (podle stejné logiky jako ve formulářích) — pro párování
 function currentPeriodInfo(d){d=d||new Date();const m=d.getMonth()+1,y=d.getFullYear();let name;
@@ -244,9 +253,57 @@ function currentPeriodInfo(d){d=d||new Date();const m=d.getMonth()+1,y=d.getFull
   const startY=(m>=7)?y:y-1;const season=startY+'/'+String((startY+1)%100).padStart(2,'0');
   return {name, year:y, season, label:name+' '+y+' · sezóna '+season};}
 const _CP=currentPeriodInfo();
-const CUR_SEASON=_CP.season;
-const CUR_PERIOD=_CP.label;
-const CUR_PERIOD_SHORT=_CP.name+' '+_CP.year;   // načte se z backendu
+let CUR_SEASON=_CP.season;
+let CUR_PERIOD=_CP.label;
+let CUR_PERIOD_SHORT=_CP.name+' '+_CP.year;   // lze přepnout výběrem období v dashboardu
+function availablePeriods(){
+  const order={'Léto':0,'Podzim':1,'Zima':2,'Jaro':3};
+  const seen=new Map();
+  function addEntry(periodLabel,season){
+    if(!periodLabel) return;
+    if(seen.has(periodLabel)) return;
+    const m=periodLabel.match(/^(\S+)\s+(\d{4})/);
+    const name=m?m[1]:periodLabel, year=m?parseInt(m[2],10):0;
+    const startY=parseInt((season||'0/0').split('/')[0],10)||year;
+    const sortKey=startY*10+(order[name]!=null?order[name]:9);
+    seen.set(periodLabel,{period:periodLabel,season:season||'',short:(m?(name+' '+year):periodLabel),sortKey:sortKey});
+  }
+  addEntry(CUR_PERIOD,CUR_SEASON);
+  (DB.responses||[]).forEach(r=>addEntry(r.period,r.season));
+  return Array.from(seen.values()).sort((a,b)=>b.sortKey-a.sortKey);
+}
+function renderPeriodMenu(){
+  const menu=document.getElementById('periodMenu'); if(!menu) return;
+  const opts=availablePeriods();
+  menu.innerHTML=opts.map(function(o){
+    const esc=function(s){return String(s).replace(/'/g,"\\'");};
+    return '<div class="pditem'+(o.period===CUR_PERIOD?' active':'')+'" onclick="event.stopPropagation();selectPeriod(\''+esc(o.period)+'\',\''+esc(o.season)+'\',\''+esc(o.short)+'\')">'+o.short+'</div>';
+  }).join('');
+  if(!opts.length) menu.innerHTML='<div class="pditem" style="cursor:default;color:var(--muted)">Zatím žádná data</div>';
+}
+function togglePeriodMenu(ev){
+  ev&&ev.stopPropagation();
+  const menu=document.getElementById('periodMenu'); if(!menu) return;
+  if(!menu.classList.contains('show')) renderPeriodMenu();
+  menu.classList.toggle('show');
+}
+document.addEventListener('click',function(){const m=document.getElementById('periodMenu'); if(m) m.classList.remove('show');});
+function selectPeriod(period,season,short){
+  CUR_PERIOD=period; CUR_SEASON=season; CUR_PERIOD_SHORT=short;
+  const pn=document.getElementById('periodName'); if(pn) pn.textContent=short;
+  const menu=document.getElementById('periodMenu'); if(menu) menu.classList.remove('show');
+  if(curTeam){
+    CURRENT_ROSTER=buildTeamPlayers(curTeam);
+    buildRoster();
+    const emptyMsg=orphanHTML()+'<div class="empty">Vyber hráče vlevo a uvidíš porovnání jeho pohledu s pohledem trenérů.</div>';
+    if(curDetailPlayer){
+      const match=CURRENT_ROSTER.find(function(p){return p.first===curDetailPlayer.first&&p.last===curDetailPlayer.last;});
+      if(match){ showPlayer(match); } else { curDetailPlayer=null; document.getElementById('detail').innerHTML=emptyMsg; }
+    } else {
+      document.getElementById('detail').innerHTML=emptyMsg;
+    }
+  }
+}
 let curClub='cafc', curTeam='';
 
 function loadData(cb){
@@ -474,6 +531,25 @@ function showPlayer(p){
   });
   html+='</tbody></table></div></div>';
 
+  // HLAVA & TÝM (rozbalovací) — jiné otázky pro hráče a trenéry, proto zvlášť
+  if(hasSelf || hasCoach){
+    html+='<div class="card"><h3>Hlava &amp; Tým <span class="mini" onclick="toggleBox(this)">rozbalit ▾</span></h3><div class="csub">Motivace, soutěživost, práce s chybou, vztahy v týmu. Hráč a trenéři odpovídají na jinak formulované otázky ze svého pohledu.</div><div class="collapse" style="display:none">';
+    if(hasSelf){
+      html+='<div style="font-weight:700;font-size:12px;text-transform:uppercase;color:var(--muted);margin:6px 0 4px">Co říká hráč</div>';
+      hlavaTymPairs('player').forEach(it=>{const v=self[it.key];html+='<div class="qa"><div class="q">'+it.q+'</div><div class="a"><span class="vc '+vcClass(v)+'">'+(v!=null?v:'—')+'</span></div></div>';});
+    }
+    if(hasCoach){
+      html+='<div style="font-weight:700;font-size:12px;text-transform:uppercase;color:var(--muted);margin:12px 0 4px">Ø trenérů</div>';
+      hlavaTymPairs('coach').forEach(it=>{const v=coach[it.key]!=null?Math.round(coach[it.key]):null;html+='<div class="qa"><div class="q">'+it.q+'</div><div class="a"><span class="vc '+vcClass(v)+'">'+(v!=null?v:'—')+'</span></div></div>';});
+      p.coaches.forEach(c=>{
+        html+='<div class="coach-detail" style="margin-top:10px"><div style="font-weight:600;font-size:13px;margin-bottom:2px">'+c.who+'</div>';
+        hlavaTymPairs('coach').forEach(it=>{const v=c.ans[it.key];html+='<div class="qa"><div class="q">'+it.q+'</div><div class="a"><span class="vc '+vcClass(v)+'">'+(v!=null?v:'—')+'</span></div></div>';});
+        html+='</div>';
+      });
+    }
+    html+='</div></div>';
+  }
+
   // CO NAPSAL HRÁČ (rozbalovací) — jen pokud hráč vyplnil otevřené odpovědi
   if(hasSelf && p.open){html+='<div class="card"><h3>Co napsal hráč <span class="mini" onclick="toggleBox(this)">rozbalit ▾</span></h3><div class="csub">Otevřené odpovědi ze sebehodnocení.</div><div class="collapse" style="display:none">';
     Object.keys(p.open).forEach(q=>{const m=q.match(/^(\d+)\s*(.*)$/);const lbl=m?('<b>'+m[1]+'.</b> '+m[2]):q;html+='<div class="qa"><div class="q">'+lbl+'</div><div class="a">'+p.open[q]+'</div></div>';});
@@ -611,6 +687,23 @@ function buildPlayerEmailHTML(){
     });
   });
   h+='</tbody></table>';
+  if(hasSelf || hasCoach){
+    h+='<div style="font-size:14px;font-weight:bold;color:#C7153E;text-transform:uppercase;margin:16px 0 8px">Hlava &amp; Tým</div>';
+    if(hasSelf){
+      h+='<div style="font-size:11px;font-weight:bold;text-transform:uppercase;color:#999;margin:4px 0">Co říká hráč</div>';
+      hlavaTymPairs('player').forEach(function(it){const v=self[it.key];h+='<div style="font-size:13px;padding:2px 0;border-bottom:1px dotted #eee">'+esc(it.q)+' — <b style="color:#C7153E">'+(v!=null?v:'—')+'</b></div>';});
+    }
+    if(hasCoach){
+      h+='<div style="font-size:11px;font-weight:bold;text-transform:uppercase;color:#999;margin:10px 0 4px">Ø trenérů</div>';
+      hlavaTymPairs('coach').forEach(function(it){const v=coach[it.key]!=null?Math.round(coach[it.key]):null;h+='<div style="font-size:13px;padding:2px 0;border-bottom:1px dotted #eee">'+esc(it.q)+' — <b style="color:#1c1c1e">'+(v!=null?v:'—')+'</b></div>';});
+      if(!playerMode){
+        p.coaches.forEach(function(c){
+          h+='<div style="font-size:12px;font-weight:bold;margin:8px 0 2px">'+esc(c.who)+'</div>';
+          hlavaTymPairs('coach').forEach(function(it){const v=c.ans[it.key];h+='<div style="font-size:12.5px;padding:2px 0;border-bottom:1px dotted #eee">'+esc(it.q)+' — <b>'+(v!=null?v:'—')+'</b></div>';});
+        });
+      }
+    }
+  }
   if(hasSelf && p.open){
     const oks=Object.keys(p.open);
     if(oks.length){ h+='<div style="font-size:14px;font-weight:bold;color:#C7153E;text-transform:uppercase;margin:16px 0 8px">Co napsal hráč</div>';
@@ -661,7 +754,7 @@ function addOpen(det,p){if(!p.open)return;let h='<div class="card"><h3>Co napsal
   Object.keys(p.open).forEach(q=>{const m=q.match(/^(\d+)\s*(.*)$/);const lbl=m?('<b>'+m[1]+'.</b> '+m[2]):q;h+='<div class="qa"><div class="q">'+lbl+'</div><div class="a">'+p.open[q]+'</div></div>';});
   h+='</div></div>';det.insertAdjacentHTML('beforeend',h);}
 document.querySelectorAll('.crestimg').forEach(function(im){im.src=CREST;});
-var _pp=document.getElementById('periodPill'); if(_pp) _pp.textContent=CUR_PERIOD;
+var _pn=document.getElementById('periodName'); if(_pn) _pn.textContent=CUR_PERIOD_SHORT;
 (function(){ try{ if(sessionStorage.getItem('idp_auth')==='1'){
   document.getElementById('gate').style.display='none';
   loadData(function(){ showTeams(); });

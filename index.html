@@ -267,9 +267,66 @@
   .done-wrap .big{font-size:60px;margin-bottom:10px}
   .done-wrap h1{font-size:34px;margin-bottom:10px}
 
+  /* hub */
+  .hub-form{max-width:420px;margin:18px auto 10px;text-align:left}
+  .hub-form label{display:block;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:#8a8a8a;margin:14px 0 6px}
+  .hub-form select{width:100%;padding:13px 12px;border:1px solid #d9d9d9;border-radius:10px;font-size:16px;background:#fff}
+  .hub-form select:disabled{background:#f4f4f4;color:#aaa}
+  .hub-form .btn{width:100%;margin-top:18px}
+  .hub-chk{display:flex;gap:10px;align-items:flex-start;text-transform:none;letter-spacing:0;color:inherit;font-size:15px;margin-top:16px}
+  .hub-chk input{margin-top:3px;width:18px;height:18px}
+  .hub-disc{font-size:13px;color:#8a8a8a;margin:8px 0 0}
+  .hub-msg{font-size:14px;color:#8a8a8a;margin:10px 0 0;text-align:center}
+  .hub-msg.err{color:#C7153E}
+  .hub-alt{margin-top:18px;font-size:14px}
+  .hub-alt a{color:#8a8a8a;text-decoration:none}
+  .hub-alt a:hover{text-decoration:underline}
 </style></head><body>
 
 <div class="app">
+
+  <!-- ============ HUB — kdo jsi + co vyplňuješ ============ -->
+  <div class="screen active" id="hubWho">
+    <div class="role-wrap">
+      <img class="crest" alt="CAFC logo">
+      <div class="eyebrow">Individuální plán rozvoje</div>
+      <h1 class="display">Vítej!<br>Kdo jsi?</h1>
+      <p>Vyber se ze soupisky. Stačí jednou — příště už jdeš rovnou dál.</p>
+      <div class="hub-form">
+        <label for="hKlub">Klub</label><select id="hKlub"></select>
+        <label for="hKat">Kategorie</label><select id="hKat" disabled></select>
+        <label for="hHrac">Jméno</label><select id="hHrac" disabled></select>
+        <div id="hConsentWrap" hidden>
+          <label class="hub-chk"><input type="checkbox" id="hConsent"><span>Souhlasím se zpracováním svých odpovědí (GDPR)</span></label>
+          <p class="hub-disc">Odpovědi slouží trenérovi jako zpětná vazba o tvé formě a pohodě. Zpracování probíhá v souladu se zásadami ochrany osobních údajů klubu.</p>
+        </div>
+        <button class="btn btn-primary" id="hGo" type="button" disabled>Pokračovat</button>
+        <p class="hub-msg" id="hMsg">Načítám soupisku…</p>
+      </div>
+      <p class="hub-alt"><a href="#" id="hCoachLink">Jsem trenér ›</a></p>
+    </div>
+  </div>
+
+  <div class="screen" id="hubPick">
+    <div class="role-wrap">
+      <img class="crest" alt="CAFC logo">
+      <div class="eyebrow" id="hubHello">Ahoj</div>
+      <h1 class="display">Co dnes<br>vyplňuješ?</h1>
+      <div class="role-cards">
+        <div class="role-card hrac" id="cardTaping">
+          <div class="ricon">📅</div>
+          <div class="rtx"><div class="rt">Týdenní check-in</div><div class="rs">10 otázek, zabere minutu · každý týden</div></div>
+          <div class="rarrow">›</div>
+        </div>
+        <div class="role-card hrac" id="cardIdp">
+          <div class="ricon">⚽</div>
+          <div class="rtx"><div class="rt">Rozvojový plán (IDP)</div><div class="rs">Velké sebehodnocení · 1–2× za sezónu</div></div>
+          <div class="rarrow">›</div>
+        </div>
+      </div>
+      <p class="hub-alt"><a href="#" id="hNotMe">Nejsem to já — změnit hráče</a> · <a href="#" id="hCoachLink2">Jsem trenér ›</a></p>
+    </div>
+  </div>
 
   <!-- ============ ROLE SELECT ============ -->
   <div class="screen active" id="roleScreen">
@@ -546,7 +603,7 @@ const CREST="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAGcCAYAAABjt50AA
 const COACH_PASSWORD = "cafc2026"; // TODO: nastavit vlastní heslo
 
 // Napojení na Google Sheets (backend)
-const API_URL = "https://script.google.com/macros/s/AKfycbyJvXsrtRijwgZrru0L40VVQJWifkO1bnhAMkl33nCjX5SDVVrlK9493oVSVb4C0R-t/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxk67UDuz2YgDNDB2ATmcpMrrf97XoS2L86vKuaUz8rC-EEQWhXIAlp7_CgyIx8IVOZog/exec";
 // Seznamy se načtou živě z tabulky; tyto ukázkové slouží jen než dorazí data
 const GUEST_PLAYER = {guest:true, label:'➕ Nejsem v seznamu — napíšu jméno (host / test)', gname:'', first:'', last:'', nick:'', year:'', team:'U15', pos:'SZ', hasCode:false};
 let PLAYERS = [GUEST_PLAYER];   // žolík: host / nový hráč mimo soupisku (napíše si jméno)
@@ -1329,5 +1386,115 @@ window.addEventListener('resize',syncRovbarTop);
 document.addEventListener('input', scheduleSaveDraft, true);
 document.addEventListener('change', scheduleSaveDraft, true);
 checkForDraft();
+
+// ============ HUB — jedna identita pro IDP i Taping ============
+// Soupiska se bere z Roster API (sešit „Redlock — Kadry"), ne z listu v IDP,
+// aby oba moduly ukazovaly identicky stejný kádr.
+const HUB_ROSTER_URL = 'https://script.google.com/macros/s/AKfycbyCBswrAp8EnUkB3csHd47Et6g5WXf3H3xco51yxb_7yL5zgsIRLxEHJya7Th22a3pp/exec';
+const HUB_KEY = 'redlock_identity';
+let HUB_ROSTER = [];
+
+function hubLoad(){ try{ return JSON.parse(localStorage.getItem(HUB_KEY)||'null'); }catch(e){ return null; } }
+function hubSave(o){ try{ localStorage.setItem(HUB_KEY, JSON.stringify(o)); }catch(e){} }
+function hubShow(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  ['pTop','cTop','pNav','cNav'].forEach(i=>{const e=document.getElementById(i); if(e) e.style.display='none';});
+  document.getElementById(id).classList.add('active'); window.scrollTo({top:0}); }
+function hubUniq(a){ return a.filter((v,i)=>a.indexOf(v)===i); }
+
+function hubFetchRoster(){
+  const msg=document.getElementById('hMsg');
+  let done=false;
+  window.__hubCb=function(res){ done=true;
+    if(res&&res.ok&&res.players&&res.players.length){ HUB_ROSTER=res.players; msg.textContent=''; hubBuild(); }
+    else { msg.textContent='Soupisku se nepodařilo načíst. Obnov stránku.'; msg.className='hub-msg err'; } };
+  const s=document.createElement('script');
+  s.src=HUB_ROSTER_URL+'?action=taping&club=CAFC&team=U15&callback=__hubCb&t='+Date.now();
+  s.onerror=function(){ msg.textContent='Nepodařilo se spojit se soupiskou. Zkontroluj připojení.'; msg.className='hub-msg err'; };
+  document.body.appendChild(s);
+  setTimeout(function(){ if(!done){ msg.textContent='Soupiska neodpovídá. Obnov stránku.'; msg.className='hub-msg err'; } },12000);
+}
+
+function hubBuild(){
+  const kS=document.getElementById('hKlub'), tS=document.getElementById('hKat'), hS=document.getElementById('hHrac');
+  const cW=document.getElementById('hConsentWrap'), cB=document.getElementById('hConsent'), go=document.getElementById('hGo');
+  const klubs=hubUniq(HUB_ROSTER.map(p=>p.klub));
+  kS.innerHTML='<option value="">— vyber —</option>'+klubs.map(k=>'<option>'+k+'</option>').join('');
+  if(klubs.length===1){ kS.value=klubs[0]; }
+
+  function selected(){ return HUB_ROSTER.find(p=>String(p.facr_id)===hS.value); }
+  function refresh(){
+    const p=selected();
+    const potrebaSouhlas = !!p && !p.gdpr;
+    cW.hidden = !potrebaSouhlas;
+    go.disabled = !(p && (!potrebaSouhlas || cB.checked));
+  }
+  function fillKat(){
+    const kats=hubUniq(HUB_ROSTER.filter(p=>p.klub===kS.value).map(p=>p.kategorie));
+    tS.innerHTML='<option value="">— vyber —</option>'+kats.map(k=>'<option>'+k+'</option>').join('');
+    tS.disabled=false; if(kats.length===1) tS.value=kats[0];
+    hS.innerHTML='<option value="">— vyber —</option>'; hS.disabled=true; cW.hidden=true; refresh();
+    if(tS.value) fillHraci();
+  }
+  function fillHraci(){
+    const hs=HUB_ROSTER.filter(p=>p.klub===kS.value&&p.kategorie===tS.value)
+      .sort((a,b)=>(a.prijmeni+a.jmeno).localeCompare(b.prijmeni+b.jmeno,'cs'));
+    hS.innerHTML='<option value="">— vyber —</option>'+hs.map(p=>'<option value="'+p.facr_id+'">'+p.prijmeni+' '+p.jmeno+'</option>').join('');
+    hS.disabled=false; refresh();
+  }
+  kS.onchange=fillKat; tS.onchange=fillHraci; hS.onchange=refresh; cB.onchange=refresh;
+  if(kS.value) fillKat();
+
+  go.onclick=function(){
+    const p=selected(); if(!p) return;
+    const ulozit=function(){
+      hubSave({facr_id:p.facr_id,prijmeni:p.prijmeni,jmeno:p.jmeno,klub:p.klub,kategorie:p.kategorie});
+      hubPick();
+    };
+    if(p.gdpr){ ulozit(); return; }
+    go.disabled=true; go.textContent='Ukládám…';
+    let done=false;
+    window.__hubConsentCb=function(){ done=true; ulozit(); };
+    const s=document.createElement('script');
+    s.src=HUB_ROSTER_URL+'?action=consent&facr_id='+encodeURIComponent(p.facr_id)+'&callback=__hubConsentCb&t='+Date.now();
+    s.onerror=function(){ if(!done) ulozit(); };
+    document.body.appendChild(s);
+    setTimeout(function(){ if(!done) ulozit(); },8000);
+  };
+}
+
+function hubPick(){
+  const id=hubLoad(); if(!id){ hubShow('hubWho'); return; }
+  document.getElementById('hubHello').textContent='Ahoj '+id.jmeno+' '+id.prijmeni;
+  hubShow('hubPick');
+}
+
+// IDP: předvybere hráče v seznamu, aby se nevybíral podruhé.
+function hubGoIdp(){
+  const id=hubLoad();
+  hubShow('pIntro'); chooseHrac();
+  if(!id) return;
+  const sel=document.getElementById('pPlayer'); if(!sel) return;
+  const hledane=(id.prijmeni+' '+id.jmeno).toLowerCase();
+  for(let i=0;i<sel.options.length;i++){
+    if(sel.options[i].textContent.toLowerCase().indexOf(hledane)===0){
+      sel.value=sel.options[i].value; pOnPlayerChange(); break;
+    }
+  }
+}
+
+document.getElementById('cardTaping').onclick=function(){
+  const id=hubLoad();
+  location.href='taping.html'+(id?('?f='+encodeURIComponent(id.facr_id)):'');
+};
+document.getElementById('cardIdp').onclick=hubGoIdp;
+document.getElementById('hNotMe').onclick=function(e){ e.preventDefault(); try{localStorage.removeItem(HUB_KEY);}catch(x){} hubShow('hubWho'); hubFetchRoster(); };
+document.getElementById('hCoachLink').onclick=function(e){ e.preventDefault(); askPassword(); };
+document.getElementById('hCoachLink2').onclick=function(e){ e.preventDefault(); askPassword(); };
+
+// start: známe-li hráče, jdeme rovnou na výběr modulu
+(function(){
+  const rs=document.getElementById('roleScreen'); if(rs) rs.classList.remove('active');
+  if(hubLoad()) hubPick(); else { hubShow('hubWho'); hubFetchRoster(); }
+})();
 
 </script></body></html>

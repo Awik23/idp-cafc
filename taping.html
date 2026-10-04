@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redlock · Taping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#FAF7F6;--surface:#FFFFFF;--surface-2:#F4EFEE;--ink:#1B1416;--muted:#6E6165;--faint:#9A8E90;
+    --hair:#EAE1DF;--hair-strong:#DDD1CF;--brand:#B22833;--brand-ink:#8E1F28;
+    --good:#2E9E5B;--good-bg:#E7F4EC;--warn:#C9820A;--warn-bg:#FBF1DE;--crit:#D93A44;--crit-bg:#FBE7E8;
+    --shadow:0 1px 2px rgba(27,20,22,.04),0 8px 24px -12px rgba(27,20,22,.18);--radius:14px;
+  }
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+    --ground:#151011;--surface:#1F1819;--surface-2:#271F20;--ink:#F4ECEA;--muted:#B0A2A3;--faint:#7C6E70;
+    --hair:#332829;--hair-strong:#403334;--brand:#E4545E;--brand-ink:#EE6E77;
+    --good:#43C079;--good-bg:#16281E;--warn:#EBB13C;--warn-bg:#2C2313;--crit:#FF6B72;--crit-bg:#2E1719;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);}}
+  :root[data-theme="dark"]{
+    --ground:#151011;--surface:#1F1819;--surface-2:#271F20;--ink:#F4ECEA;--muted:#B0A2A3;--faint:#7C6E70;
+    --hair:#332829;--hair-strong:#403334;--brand:#E4545E;--brand-ink:#EE6E77;
+    --good:#43C079;--good-bg:#16281E;--warn:#EBB13C;--warn-bg:#2C2313;--crit:#FF6B72;--crit-bg:#2E1719;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);}
+  *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto;padding:0 18px 80px}
+  [hidden]{display:none!important}
+  header.top{padding:30px 0 14px;display:flex;align-items:center;gap:12px}
+  .mark{width:38px;height:38px;border-radius:10px;background:var(--brand);position:relative;flex:none;box-shadow:0 6px 16px -8px var(--brand)}
+  .mark::before{content:"";position:absolute;inset:10px 12px 8px;border:2.5px solid #fff;border-bottom:none;border-radius:8px 8px 0 0}
+  .mark::after{content:"";position:absolute;left:8px;right:8px;bottom:8px;height:12px;background:#fff;border-radius:3px}
+  .wordmark{font-family:"Anton",sans-serif;font-size:27px;letter-spacing:.02em;line-height:1;text-transform:uppercase}
+  .wordmark .lock{color:var(--brand)}
+  .tagline{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--muted);margin-top:3px}
+
+  .card{background:var(--surface);border:1px solid var(--hair-strong);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-top:10px}
+  h1{font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;font-size:22px;margin:0 0 4px}
+  .lead{color:var(--muted);font-size:14.5px;margin:0 0 16px;max-width:56ch}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:10.5px;color:var(--faint);margin-bottom:5px}
+  select{width:100%;font-family:inherit;font-size:15.5px;color:var(--ink);background:var(--surface);border:1px solid var(--hair-strong);border-radius:10px;padding:11px}
+  select:focus-visible{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
+  select:disabled{opacity:.5}
+  .consent{margin-top:6px;background:var(--surface-2);border:1px solid var(--hair);border-radius:12px;padding:13px 14px}
+  .chk{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:14.5px;font-weight:600}
+  .chk input{margin-top:3px;width:18px;height:18px;accent-color:var(--brand);flex:none}
+  .disc{font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.45}
+
+  .prof{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--hair);border-radius:99px;padding:7px 8px 7px 15px;margin:4px 0 6px;box-shadow:var(--shadow)}
+  .prof .who{font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;font-size:15px}
+  .prof .lvchip{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:11px;color:#fff;background:var(--brand);padding:3px 9px;border-radius:99px}
+  .prof .team{font-size:13px;color:var(--muted)}
+  .prof .edit{margin-left:auto;font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface-2);border:1px solid var(--hair-strong);border-radius:99px;padding:6px 12px;cursor:pointer}
+  .prof .edit:hover{color:var(--ink);border-color:var(--brand)}
+
+  .context{background:var(--surface);border:1px solid var(--hair);border-radius:12px;padding:15px 17px;margin:12px 0 14px}
+  .context h2{font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:14px;margin:0 0 7px}
+  .context p{font-size:14px;color:var(--muted);margin:7px 0;line-height:1.5}
+  .context strong{color:var(--ink);font-weight:600}
+
+  .toolrow{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;align-items:end}
+  .seg-label{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:10.5px;color:var(--faint);margin-bottom:6px}
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface-2);padding:5px;border-radius:12px;border:1px solid var(--hair)}
+  .seg button{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:13.5px;color:var(--muted);background:transparent;border:0;border-radius:8px;padding:9px 6px;cursor:pointer;line-height:1.1}
+  .seg button[aria-pressed="true"]{background:var(--brand);color:#fff;box-shadow:var(--shadow)}
+  .weekfield input{width:100%;font-family:inherit;font-size:15px;color:var(--ink);background:var(--surface);border:1px solid var(--hair-strong);border-radius:10px;padding:9px 11px}
+
+  .progress{display:flex;align-items:center;gap:11px;margin:14px 0 2px}
+  .progress-bar{flex:1;height:7px;background:var(--surface-2);border:1px solid var(--hair);border-radius:99px;overflow:hidden}
+  .progress-bar span{display:block;height:100%;width:0;background:var(--brand);border-radius:99px;transition:width .25s}
+  .progress-txt{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:12px;color:var(--muted);white-space:nowrap}
+
+  .meter{position:sticky;top:10px;z-index:20;margin:12px 0 6px;background:var(--surface);border:1px solid var(--hair-strong);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;display:flex;align-items:center;gap:16px}
+  .score{font-family:"Anton",sans-serif;font-size:44px;line-height:.82;font-variant-numeric:tabular-nums}
+  .score small{font-family:"Barlow Semi Condensed",sans-serif;font-size:14px;color:var(--faint);font-weight:600}
+  .meter-mid{flex:1;min-width:0}
+  .flagchip{display:inline-flex;align-items:center;gap:7px;font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:12.5px;padding:4px 11px;border-radius:99px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .lv-good{color:var(--good);background:var(--good-bg)} .lv-good .dot{background:var(--good)}
+  .lv-warn{color:var(--warn);background:var(--warn-bg)} .lv-warn .dot{background:var(--warn)}
+  .lv-crit{color:var(--crit);background:var(--crit-bg)} .lv-crit .dot{background:var(--crit)}
+  .track{height:9px;border-radius:99px;margin-top:10px;background:linear-gradient(90deg,var(--crit) 0 30%,var(--warn) 30% 60%,var(--good) 60% 100%);position:relative;opacity:.85}
+  .needle{position:absolute;top:-3px;width:4px;height:15px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--surface);transition:left .25s cubic-bezier(.2,.7,.2,1)}
+  .meter-note{font-size:11.5px;color:var(--faint);margin-top:7px;line-height:1.35}
+
+  section.grp{margin-top:22px}
+  .grp-head{display:flex;align-items:baseline;gap:10px;padding-bottom:8px;border-bottom:2px solid var(--hair-strong);margin-bottom:6px}
+  .grp-head h2{font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:16px;margin:0}
+  .grp-head .lock-note{margin-left:auto;font-size:11px;color:var(--faint);font-weight:500}
+  .grp-sub{font-size:12.5px;color:var(--muted);margin:0 0 4px}
+
+  .item{padding:14px 2px;border-bottom:1px solid var(--hair)}
+  .item:last-child{border-bottom:0}
+  .item .q{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
+  .item .q .lab{font-weight:600;font-size:15.5px}
+  .num{color:var(--faint);font-variant-numeric:tabular-nums;margin-right:3px}
+  .item .q .val{font-family:"Anton",sans-serif;font-size:20px;color:var(--brand);font-variant-numeric:tabular-nums;min-width:1.4em;text-align:right}
+  .item.low .q .val{color:var(--crit)} .item.unset .q .val{color:var(--faint)}
+  .item .help{font-size:12.5px;color:var(--muted);margin:0 0 10px;line-height:1.35}
+  .anchors{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);margin-top:7px}
+  .nums{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:2px}
+  .numbtn{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:14px;color:var(--muted);background:var(--surface-2);border:1px solid var(--hair-strong);border-radius:8px;padding:10px 0;cursor:pointer;font-variant-numeric:tabular-nums}
+  .numbtn:hover{border-color:var(--brand);color:var(--ink)}
+  .numbtn[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .numbtn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .item.tags{padding:16px 2px}
+  .tags-q{font-weight:600;font-size:15px;margin:0 0 9px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:13px;color:var(--muted);background:var(--surface-2);border:1px solid var(--hair-strong);border-radius:99px;padding:7px 13px;cursor:pointer}
+  .chip:hover{border-color:var(--brand)} .chip[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .reflect textarea{width:100%;font-family:inherit;font-size:14.5px;color:var(--ink);background:var(--surface);border:1px solid var(--hair-strong);border-radius:10px;padding:10px 11px;resize:vertical;min-height:60px}
+  .reflect textarea:focus-visible{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
+  .reflect .r{margin:12px 0} .reflect label{display:block;font-weight:600;font-size:14.5px;margin-bottom:6px}
+  .reflect .help{font-size:12.5px;color:var(--muted);margin:-2px 0 8px;line-height:1.4}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px;align-items:center}
+  .btn{font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:13.5px;border-radius:11px;padding:13px 20px;cursor:pointer;border:1px solid var(--hair-strong);background:var(--surface);color:var(--ink)}
+  .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .btn.primary:hover{background:var(--brand-ink)} .btn.primary:disabled{opacity:.45;cursor:not-allowed}
+  .btn:hover{border-color:var(--brand)} .btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .msg{font-size:13.5px;color:var(--muted);margin-top:12px}
+  .msg.err{color:var(--crit);font-weight:600}
+  .done{text-align:center;padding:40px 20px}
+  .done .big{font-family:"Anton",sans-serif;font-size:40px;color:var(--good);margin-bottom:6px}
+  @media (max-width:520px){.toolrow{grid-template-columns:1fr}.wordmark{font-size:24px}.score{font-size:38px}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.back{margin:0 0 14px;font-size:14px}
+.back a{color:#8a8a8a;text-decoration:none}
+.back a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="mark" aria-hidden="true"></div>
+    <div>
+      <div class="wordmark">RED<span class="lock">LOCK</span></div>
+      <div class="tagline">Taping · týdenní check-in</div>
+    </div>
+  </header>
+
+  <!-- LOADING -->
+  <div id="loading" class="card"><p class="msg" id="loadMsg">Načítám soupisku…</p>
+    <div class="actions" id="retryWrap" hidden><button class="btn" id="retryBtn" type="button">Zkusit znovu</button></div>
+  </div>
+
+  <p class="back"><a href="./">‹ Zpět na rozcestník</a></p>
+
+  <!-- SETUP -->
+  <div id="setup" class="card" hidden>
+    <h1 id="setupTitle">Kdo jsi?</h1>
+    <p class="lead" id="setupLede">Vyber se ze soupisky — stačí jednou, příště už jdeš rovnou na check-in.</p>
+    <div class="field" id="f_klub"><label for="s_klub">Klub</label><select id="s_klub"></select></div>
+    <div class="field" id="f_kat"><label for="s_kat">Kategorie</label><select id="s_kat" disabled></select></div>
+    <div class="field" id="f_hrac"><label for="s_hrac">Jméno</label><select id="s_hrac" disabled></select></div>
+    <div class="consent">
+      <label class="chk"><input type="checkbox" id="s_consent"><span>Souhlasím se zpracováním svých odpovědí (GDPR)</span></label>
+      <p class="disc">Odpovědi slouží trenérovi jako zpětná vazba o tvé formě a pohodě. Zpracování probíhá v souladu se zásadami ochrany osobních údajů klubu, který má potřebné souhlasy zajištěné.</p>
+    </div>
+    <div class="actions"><button class="btn primary" id="startBtn" type="button" disabled>Uložit a pokračovat</button></div>
+  </div>
+
+  <!-- APP -->
+  <div id="app" hidden>
+    <div class="prof" id="prof"></div>
+    <div class="context">
+      <h2>O co tu jde?</h2>
+      <p>Krátký check-in, který vyplňuješ jednou týdně. Ber to jako zpětnou vazbu pro trenéra — čím přesněji odpovíš, tím líp.</p>
+      <p>U každé otázky ťukni číslo 1–10. Co znamená 1 a co 10 máš vždycky napsané pod otázkou.</p>
+    </div>
+    <div class="toolrow">
+      <div>
+        <div class="seg-label">Vyplnění</div>
+        <div class="seg" role="group" aria-label="Režim">
+          <button type="button" data-mode="tyden" aria-pressed="true">Týdenní check-in</button>
+          <button type="button" data-mode="mesic" aria-pressed="false">Měsíční ohlédnutí</button>
+        </div>
+      </div>
+      <div class="field weekfield" style="margin:0"><label for="pweek">Za který týden</label><input id="pweek" type="week"></div>
+    </div>
+    <div class="progress"><div class="progress-bar"><span id="progFill"></span></div><span class="progress-txt" id="progTxt">0 / 0</span></div>
+    <div class="meter" aria-live="polite">
+      <div class="score" id="scoreNum">–<small> /10</small></div>
+      <div class="meter-mid">
+        <span class="flagchip lv-good" id="flagChip"><span class="dot"></span><span id="flagTxt">—</span></span>
+        <div class="track"><div class="needle" id="needle" style="left:60%"></div></div>
+        <div class="meter-note" id="coachNote">Celkový průměr týdne (vyšší = lepší týden).</div>
+      </div>
+    </div>
+    <form id="form"></form>
+    <div class="actions">
+      <button class="btn primary" type="button" id="submitBtn">Odeslat</button>
+      <span class="msg" id="submitMsg"></span>
+    </div>
+  </div>
+
+  <!-- DONE -->
+  <div id="done" class="card done" hidden>
+    <div class="big">Hotovo ✓</div>
+    <p class="msg" id="doneMsg">Odesláno trenérovi. Díky!</p>
+    <div class="actions" style="justify-content:center"><button class="btn" id="againBtn" type="button">Zpět</button></div>
+  </div>
+</div>
+
+<script>
+/* ===== KONFIGURACE ===== */
+// Taping backend — sem se ukládají odpovědi
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz0gTQV2z95fIoUCPHpqd757gMr5FvVdjsm4CENGLZu50CYotqyCaBclMS8baISDnjL/exec';
+// Roster API — jediný zdroj pravdy o soupisce (sešit „Redlock — Kadry")
+const ROSTER_URL  = 'https://script.google.com/macros/s/AKfycbyCBswrAp8EnUkB3csHd47Et6g5WXf3H3xco51yxb_7yL5zgsIRLxEHJya7Th22a3pp/exec';
+const ROSTER_CLUB = 'CAFC';
+const ROSTER_TEAM = 'U15';
+// Hráč může přijít z rozcestníku jako ?f=<facr_id>
+const FROM_HUB = new URLSearchParams(location.search).get('f') || '';
+
+/* ===== Úrovně & otázky (zamčené) ===== */
+const ALL=["zaklad","standard","profi"];
+function levelFromKat(k){k=(k||'').toUpperCase();
+  if(/U1[7-9]|DOROST/.test(k)) return 'standard';
+  if(/MU[ŽZ]I|DOSP|[ŽZ]ENY|SENIOR/.test(k)) return 'profi';
+  return 'zaklad'; }
+const LEVELS={zaklad:'U14–U16',standard:'U17–U19',profi:'Dospělí'};
+
+const ITEMS=[
+  {id:"unava",g:"telo",dir:"neg",cats:ALL,lab:"Únava",help:"Jak unavený ses tento týden cítil na trénincích?",lo:"Svěží",hi:"Úplně vyčerpaný"},
+  {id:"spanek",g:"telo",dir:"pos",cats:ALL,lab:"Spánek",help:"Jak kvalitní jsi měl tento týden spánek?",lo:"Špatný",hi:"Výborný"},
+  {id:"bolest",g:"telo",dir:"neg",cats:ALL,lab:"Bolest svalů",help:"Bolely tě tento týden svaly nebo tě něco pobolívalo?",lo:"Vůbec",hi:"Hodně bolely"},
+  {id:"stres",g:"telo",dir:"neg",cats:ALL,lab:"Stres",help:"Jak velký tlak nebo nervozitu jsi tento týden cítil?",lo:"Klid",hi:"Velký tlak"},
+  {id:"treninky",g:"fotbal",dir:"pos",cats:ALL,lab:"Tréninky",help:"Jak ti šly tréninky tento týden — dařilo se ti?",lo:"Vůbec nešly",hi:"Šly skvěle"},
+  {id:"hlava",g:"fotbal",dir:"pos",cats:ALL,lab:"Soustředěnost",help:"Jak moc jsi byl tento týden hlavou u tréninku?",lo:"Myšlenkama jinde",hi:"Plně u toho"},
+  {id:"sebeduvera",g:"fotbal",dir:"pos",cats:["standard","profi"],lab:"Sebedůvěra na hřišti",help:"Věřil sis tento týden na hřišti?",lo:"Nevěřil",hi:"Věřil si"},
+  {id:"chut",g:"fotbal",dir:"pos",cats:ALL,lab:"Chuť do fotbalu",help:"Jak moc ses tento týden těšil na fotbal?",lo:"Nechtělo se mi",hi:"Moc těšil"},
+  {id:"tym",g:"fotbal",dir:"pos",cats:ALL,lab:"Vztahy v týmu",help:"Jak ti bylo tento týden v týmu, mezi klukama?",lo:"Cítil se mimo",hi:"Bylo super"},
+  {id:"load",g:"zatez",dir:"neg",scored:false,cats:["standard","profi","zaklad"],lab:"Náročnost týdne",help:"Jak fyzicky náročný byl pro tebe tento týden celkově?",lo:"Lehký",hi:"Vyčerpávající"},
+  {id:"offload",g:"zivot",dir:"neg",cats:ALL,lab:"Zátěž mimo fotbal",help:"Zatěžovalo tě tento týden něco mimo fotbal (škola, doma, osobní věci)?",lo:"Vůbec, klid",hi:"Hodně mě to táhlo dolů"},
+  {id:"src",g:"zivot",type:"tags",cats:ALL,q:"Když tě něco mimo fotbal zatěžovalo, čeho se to týkalo? Můžeš vybrat víc možností.",
+     opts:["Škola / písemky","Doma","Zdraví / zranění","Kamarádi / vztahy","Něco jiného"],
+     optsByCat:{profi:["Práce","Peníze","Doma / rodina","Zdraví","Vztahy","Něco jiného"]}},
+  {id:"rovnovaha",g:"zivot",dir:"pos",cats:["profi"],lab:"Rovnováha",help:"Stíhal jsi tento týden vedle sebe práci, fotbal i osobní život?",lo:"Nestíhal nic",hi:"Měl srovnané"}
+];
+const GROUPS={telo:{t:"Tělo & pohoda",sub:"Jak na tom tento týden bylo tvoje tělo."},fotbal:{t:"Fotbal",sub:"Jak ti šlo tento týden na hřišti a v hlavě."},zatez:{t:"Zátěž týdne",sub:"Nepočítá se do průměru — jen orientačně, kolik toho fyzicky bylo."},zivot:{t:"Život mimo fotbal"}};
+const GROUP_ORDER=["telo","fotbal","zatez","zivot"];
+const REFLECT={
+  zaklad:[["r_move","Co ti šlo poslední měsíc nejlíp a co tě naopak brzdilo? (na hřišti i mimo něj)"],["r_one","Jedna věc, na které chceš příští měsíc zamakat"]],
+  standard:[["r_move","Co ti šlo poslední měsíc nejlíp a co tě naopak brzdilo? (na hřišti i mimo něj)"],["r_one","Jedna konkrétní věc, na které chceš příští měsíc zamakat"]],
+  profi:[["r_move","Co mi šlo poslední měsíc nejlíp a co mě brzdilo? (na hřišti i mimo něj)"],["r_one","Jedna konkrétní věc, na které chci příští měsíc zamakat"],["r_goal","Jsem blíž svému cíli? V čem konkrétně?"]]
+};
+
+/* ===== Stav ===== */
+let roster=[], profile=null, cat="zaklad", mode="tyden";
+const state={values:{},tags:[],reflect:{},coachMsg:""};
+
+/* ===== Načtení soupisky (JSONP) ===== */
+function loadRoster(){
+  show('loading'); document.getElementById('retryWrap').hidden=true;
+  document.getElementById('loadMsg').textContent='Načítám soupisku…';
+  let done=false;
+  window.__rosterCb=function(res){ done=true;
+    if(res&&res.ok&&res.players){ roster=res.players; afterRoster(); }
+    else fail('Backend odpověděl chybou.'); };
+  const s=document.createElement('script');
+  s.src=ROSTER_URL+'?action=taping&club='+ROSTER_CLUB+'&team='+ROSTER_TEAM+'&callback=__rosterCb&t='+Date.now();
+  s.onerror=function(){ fail('Nepodařilo se spojit s backendem.'); };
+  document.body.appendChild(s);
+  setTimeout(function(){ if(!done) fail('Backend neodpovídá.'); },12000);
+}
+function fail(m){ document.getElementById('loadMsg').textContent=m+' Zkontroluj připojení a zkus to znovu.'; document.getElementById('loadMsg').className='msg err'; document.getElementById('retryWrap').hidden=false; }
+document.getElementById('retryBtn').onclick=loadRoster;
+
+function afterRoster(){
+  // 1) hráč přišel z rozcestníku (?f=facr_id) — identitu neřešíme znovu
+  if(FROM_HUB){
+    const p=roster.find(x=>String(x.facr_id)===String(FROM_HUB));
+    if(p){
+      profile={facr_id:p.facr_id,prijmeni:p.prijmeni,jmeno:p.jmeno,klub:p.klub,kategorie:p.kategorie,consent:!!p.gdpr};
+      saveProfile(profile); cat=levelFromKat(profile.kategorie);
+      if(p.gdpr) enterApp(); else askConsent(p);
+      return;
+    }
+  }
+  // 2) uložený profil z minula — ověř souhlas proti serveru
+  profile=loadProfile();
+  if(profile){
+    const p=roster.find(x=>String(x.facr_id)===String(profile.facr_id));
+    cat=levelFromKat(profile.kategorie);
+    if(p && !p.gdpr){ askConsent(p); return; }
+    enterApp(); return;
+  }
+  // 3) nikdo — plný výběr
+  buildSetup();
+}
+
+// Souhlas se ukládá k hráči do soupisky, ne do prohlížeče:
+// odklikne ho jednou za život, ne znovu po přeinstalaci mobilu.
+function askConsent(p){
+  show('setup');
+  const t=document.getElementById('setupTitle'); if(t) t.textContent='Ještě jedna věc';
+  const l=document.getElementById('setupLede'); if(l) l.textContent=p.jmeno+' '+p.prijmeni+' — než začneš, potvrď souhlas. Příště už se neptáme.';
+  ['f_klub','f_kat','f_hrac'].forEach(id=>{const e=document.getElementById(id); if(e) e.hidden=true;});
+  const cons=document.getElementById('s_consent'), start=document.getElementById('startBtn');
+  cons.checked=false; start.disabled=true; start.textContent='Souhlasím a pokračovat';
+  cons.onchange=function(){ start.disabled=!cons.checked; };
+  start.onclick=function(){
+    start.disabled=true; start.textContent='Ukládám…';
+    let done=false;
+    window.__consentCb=function(res){ done=true; profile.consent=true; saveProfile(profile); enterApp(); };
+    const s=document.createElement('script');
+    s.src=ROSTER_URL+'?action=consent&facr_id='+encodeURIComponent(p.facr_id)+'&callback=__consentCb&t='+Date.now();
+    s.onerror=function(){ if(!done){ profile.consent=true; saveProfile(profile); enterApp(); } };
+    document.body.appendChild(s);
+    setTimeout(function(){ if(!done){ profile.consent=true; saveProfile(profile); enterApp(); } },8000);
+  };
+}
+
+/* ===== Profil (localStorage) ===== */
+function loadProfile(){ try{return JSON.parse(localStorage.getItem('redlock_taping_profile')||'null');}catch(e){return null;} }
+function saveProfile(p){ try{localStorage.setItem('redlock_taping_profile',JSON.stringify(p));}catch(e){} }
+function uniq(a){return a.filter((v,i)=>a.indexOf(v)===i);}
+
+function buildSetup(){
+  show('setup');
+  const kSel=document.getElementById('s_klub'),katSel=document.getElementById('s_kat'),hSel=document.getElementById('s_hrac'),cons=document.getElementById('s_consent'),start=document.getElementById('startBtn');
+  const klubs=uniq(roster.map(p=>p.klub));
+  kSel.innerHTML='<option value="">— vyber —</option>'+klubs.map(k=>`<option>${k}</option>`).join('');
+  function refresh(){ start.disabled=!(kSel.value&&katSel.value&&hSel.value&&cons.checked); }
+  kSel.onchange=function(){ const kats=uniq(roster.filter(p=>p.klub===kSel.value).map(p=>p.kategorie));
+    katSel.innerHTML='<option value="">— vyber —</option>'+kats.map(k=>`<option>${k}</option>`).join(''); katSel.disabled=false;
+    hSel.innerHTML=''; hSel.disabled=true; refresh(); };
+  katSel.onchange=function(){ const hs=roster.filter(p=>p.klub===kSel.value&&p.kategorie===katSel.value).sort((a,b)=>(a.prijmeni+a.jmeno).localeCompare(b.prijmeni+b.jmeno,'cs'));
+    hSel.innerHTML='<option value="">— vyber —</option>'+hs.map(p=>`<option value="${p.facr_id}">${p.prijmeni} ${p.jmeno}</option>`).join(''); hSel.disabled=false; refresh(); };
+  hSel.onchange=refresh; cons.onchange=refresh;
+  start.onclick=function(){ const p=roster.find(x=>x.facr_id===hSel.value); if(!p)return;
+    profile={facr_id:p.facr_id,prijmeni:p.prijmeni,jmeno:p.jmeno,klub:p.klub,kategorie:p.kategorie,consent:true};
+    saveProfile(profile); cat=levelFromKat(profile.kategorie); state.values={};state.tags=[];state.reflect={};state.coachMsg=""; enterApp(); };
+}
+
+function enterApp(){ show('app'); state.openTs=Date.now(); paintProfile(); try{document.getElementById('pweek').value=isoWeek(new Date());}catch(e){} render(); }
+function paintProfile(){ const el=document.getElementById('prof');
+  el.innerHTML=`<span class="who">${profile.jmeno} ${profile.prijmeni}</span><span class="lvchip">${LEVELS[cat]}</span><span class="team">${profile.klub} · ${profile.kategorie}</span><button class="edit" id="editBtn" type="button">Změnit</button>`;
+  document.getElementById('editBtn').onclick=function(){ localStorage.removeItem('redlock_taping_profile'); profile=null; buildSetup(); };
+}
+
+/* ===== Render ===== */
+const form=document.getElementById('form');
+function labelOf(i){return (i.labelByCat&&i.labelByCat[cat])||i.lab;}
+function helpOf(i){return (i.helpByCat&&i.helpByCat[cat])||i.help||"";}
+function currentItems(){return ITEMS.filter(i=>i.cats.includes(cat));}
+function well(i,v){return i.dir==="neg"?(11-v):v;}
+function isBad(i,v){return i.scored!==false&&well(i,v)<=3;}
+
+function render(){
+  form.innerHTML="";
+  const monthly=mode==="mesic";
+  document.querySelector(".meter").hidden=monthly;
+  document.querySelector(".progress").hidden=monthly;
+  if(monthly){ renderMonthly(); return; }
+  const items=currentItems();
+  const byG={}; GROUP_ORDER.forEach(g=>byG[g]=[]);
+  items.forEach(i=>{ if(byG[i.g])byG[i.g].push(i); });
+  let n=0;
+  GROUP_ORDER.forEach(gk=>{ const gi=byG[gk]; if(!gi.length)return;
+    const sec=document.createElement("section"); sec.className="grp";
+    const head=document.createElement("div"); head.className="grp-head"; head.innerHTML=`<h2>${GROUPS[gk].t}</h2>`+(gk==="zivot"?`<span class="lock-note">🔒 citlivé</span>`:``);
+    sec.appendChild(head);
+    if(GROUPS[gk].sub){const s=document.createElement("p");s.className="grp-sub";s.textContent=GROUPS[gk].sub;sec.appendChild(s);}
+    gi.forEach(i=>{
+      if(i.type==="tags"){ sec.appendChild(renderTags(i)); return; }
+      n++; const num=n, v=state.values[i.id];
+      const wrap=document.createElement("div"); wrap.className="item"+(v==null?" unset":(isBad(i,v)?" low":""));
+      const q=document.createElement("div"); q.className="q"; q.innerHTML=`<span class="lab"><span class="num">${num}.</span>${labelOf(i)}</span><span class="val">${v==null?"–":v}</span>`;
+      wrap.appendChild(q);
+      if(helpOf(i)){const h=document.createElement("p");h.className="help";h.textContent=helpOf(i);wrap.appendChild(h);}
+      const nums=document.createElement("div"); nums.className="nums";
+      for(let x=1;x<=10;x++){ const b=document.createElement("button"); b.type="button"; b.className="numbtn"; b.textContent=x;
+        b.setAttribute("aria-pressed",v===x?"true":"false"); b.setAttribute("aria-label",labelOf(i)+": "+x);
+        b.onclick=function(){ state.values[i.id]=x; nums.querySelectorAll(".numbtn").forEach((bb,idx)=>bb.setAttribute("aria-pressed",(idx+1)===x?"true":"false"));
+          wrap.classList.remove("unset"); wrap.classList.toggle("low",isBad(i,x)); q.querySelector(".val").textContent=x; update(); };
+        nums.appendChild(b); }
+      wrap.appendChild(nums);
+      const anc=document.createElement("div"); anc.className="anchors"; anc.innerHTML=`<span>1 · ${i.lo}</span><span>${i.hi} · 10</span>`;
+      wrap.appendChild(anc); sec.appendChild(wrap);
+    });
+    form.appendChild(sec);
+  });
+  update();
+}
+function renderMonthly(){
+  const sec=document.createElement("section"); sec.className="grp reflect";
+  sec.innerHTML=`<div class="grp-head"><h2>Měsíční ohlédnutí</h2></div><p class="grp-sub">Jednou za měsíc se ohlédni za uplynulými týdny. Nejde o čísla — napiš vlastními slovy, jak to bylo.</p>`;
+  REFLECT[cat].forEach(([id,qq])=>{ const d=document.createElement("div"); d.className="r";
+    d.innerHTML=`<label for="${id}">${qq}</label><textarea id="${id}" rows="3"></textarea>`;
+    const ta=d.querySelector("textarea"); ta.value=state.reflect[id]||""; ta.oninput=e=>state.reflect[id]=e.target.value; sec.appendChild(d); });
+  const cd=document.createElement("div"); cd.className="r";
+  cd.innerHTML=`<label for="coachMsg">Vzkaz trenérům</label><p class="help">Cokoliv, co chceš, aby trenéři věděli — co tě trápí, co bys potřeboval, nápad, pochvala i kritika. Na rovinu.</p><textarea id="coachMsg" rows="4"></textarea>`;
+  const cta=cd.querySelector("#coachMsg"); cta.value=state.coachMsg||""; cta.oninput=e=>state.coachMsg=e.target.value; sec.appendChild(cd);
+  form.appendChild(sec);
+}
+function renderTags(i){ const wrap=document.createElement("div"); wrap.className="item tags";
+  const q=document.createElement("p"); q.className="tags-q"; q.textContent=i.q; wrap.appendChild(q);
+  const row=document.createElement("div"); row.className="chips";
+  ((i.optsByCat&&i.optsByCat[cat])||i.opts).forEach(opt=>{ const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=opt;
+    b.setAttribute("aria-pressed",state.tags.includes(opt)?"true":"false");
+    b.onclick=function(){ const k=state.tags.indexOf(opt); if(k>=0)state.tags.splice(k,1); else state.tags.push(opt); b.setAttribute("aria-pressed",state.tags.includes(opt)?"true":"false"); };
+    row.appendChild(b); });
+  wrap.appendChild(row); return wrap;
+}
+
+/* ===== Skóre ===== */
+function update(){
+  const items=currentItems().filter(i=>i.type!=="tags");
+  const scored=items.filter(i=>i.scored!==false);
+  const filled=items.filter(i=>state.values[i.id]!=null).length;
+  setProgress(filled,items.length);
+  const w=scored.filter(i=>state.values[i.id]!=null).map(i=>well(i,state.values[i.id]));
+  const el=document.getElementById("scoreNum");
+  if(!w.length){ el.innerHTML=`–<small> /10</small>`; setFlag("good","Začni vyplňovat","Ťukni číslo u každé otázky."); document.getElementById("needle").style.left="60%"; return; }
+  const avg=w.reduce((a,b)=>a+b,0)/w.length;
+  el.innerHTML=`${avg.toFixed(1)}<small> /10</small>`;
+  document.getElementById("needle").style.left=Math.max(2,Math.min(98,avg*10))+"%";
+  const low=scored.filter(i=>state.values[i.id]!=null&&well(i,state.values[i.id])<=3);
+  const mid=scored.filter(i=>state.values[i.id]!=null&&well(i,state.values[i.id])>3&&well(i,state.values[i.id])<=5);
+  const nm=a=>a.map(i=>labelOf(i).toLowerCase()).join(", ");
+  if(low.length) setFlag("crit","Náročný týden",`Nejvíc tě trápí: ${nm(low)}.`);
+  else if(mid.length) setFlag("warn","Slabší týden",`Slabší místa: ${nm(mid)}.`);
+  else setFlag("good","Dobrý týden","Všechno v pohodě — jen tak dál.");
+}
+function setProgress(f,t){ document.getElementById("progFill").style.width=(t?Math.round(f/t*100):0)+"%"; document.getElementById("progTxt").textContent=`${f} / ${t} vyplněno`; }
+function setFlag(l,t,note){ const c=document.getElementById("flagChip"); c.className="flagchip lv-"+l; document.getElementById("flagTxt").textContent=t; document.getElementById("coachNote").textContent=note; }
+
+/* ===== Režim ===== */
+document.querySelectorAll(".seg button").forEach(b=>{ b.onclick=function(){ document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed","false")); b.setAttribute("aria-pressed","true"); mode=b.dataset.mode; render(); }; });
+
+/* ===== Odeslání ===== */
+document.getElementById("submitBtn").onclick=function(){
+  const monthly=mode==="mesic";
+  const items=currentItems().filter(i=>i.type!=="tags");
+  if(!monthly){ const need=items.filter(i=>state.values[i.id]==null); if(need.length){ setMsg("Vyplň prosím všechny otázky ("+need.length+" zbývá).",true); return; } }
+  else { const any=REFLECT[cat].some(([id])=>state.reflect[id])||state.coachMsg.trim(); if(!any){ setMsg("Napiš aspoň něco do ohlédnutí nebo vzkazu.",true); return; } }
+  const btn=document.getElementById("submitBtn"); btn.disabled=true; setMsg("Odesílám…",false);
+  const scored=items.filter(i=>i.scored!==false&&state.values[i.id]!=null).map(i=>well(i,state.values[i.id]));
+  const avg=scored.length?(scored.reduce((a,b)=>a+b,0)/scored.length).toFixed(1):"";
+  const flag=document.getElementById("flagTxt").textContent;
+  const payload={ facr_id:profile.facr_id,prijmeni:profile.prijmeni,jmeno:profile.jmeno,klub:profile.klub,kategorie:profile.kategorie,
+    typ:monthly?"mesic":"tyden", tyden_iso:document.getElementById("pweek").value||"",
+    prumer:monthly?"":avg, flag:monthly?"":flag, values:monthly?{}:state.values,
+    tagy:monthly?"":state.tags.join("; "),
+    r_move:state.reflect.r_move||"", r_one:state.reflect.r_one||"", r_goal:state.reflect.r_goal||"", coachMsg:state.coachMsg||"",
+    sekundy:Math.max(0,Math.round((Date.now()-(state.openTs||Date.now()))/1000)),
+    kvalita:monthly?"":fillQuality(items) };
+  fetch(BACKEND_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)})
+    .then(function(){ finishOK(); })
+    .catch(function(){ finishOK(); }); // no-cors → odpověď je nečitelná; řádek se zapíše
+};
+// Odflákne-li to někdo stejným číslem u všech otázek, pozná se to podle
+// rozptylu: otázky míří proti sobě, takže samé stejné kliknutí nedává smysl.
+function fillQuality(items){
+  const raw=items.filter(i=>state.values[i.id]!=null).map(i=>state.values[i.id]);
+  if(raw.length<5) return "";
+  return (Math.max.apply(null,raw)-Math.min.apply(null,raw))<=1 ? "jednotvárné" : "ok";
+}
+function finishOK(){ state.values={};state.tags=[];state.reflect={};state.coachMsg=""; document.getElementById("submitBtn").disabled=false; setMsg("",false); show('done'); }
+function setMsg(t,err){ const m=document.getElementById("submitMsg"); m.textContent=t; m.className="msg"+(err?" err":""); }
+document.getElementById("againBtn").onclick=function(){ show('app'); render(); };
+
+/* ===== Utility ===== */
+function show(id){ ['loading','setup','app','done'].forEach(x=>document.getElementById(x).hidden=(x!==id)); }
+function isoWeek(d){ const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); const day=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-day); const ys=new Date(Date.UTC(t.getUTCFullYear(),0,1)); const wk=Math.ceil((((t-ys)/86400000)+1)/7); return t.getUTCFullYear()+"-W"+String(wk).padStart(2,"0"); }
+
+/* ===== Start ===== */
+loadRoster();
+</script>
+</body>
+</html>
