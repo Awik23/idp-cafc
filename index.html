@@ -278,9 +278,11 @@
   .hub-disc{font-size:13px;color:#8a8a8a;margin:8px 0 0}
   .hub-msg{font-size:14px;color:#8a8a8a;margin:10px 0 0;text-align:center}
   .hub-msg.err{color:#C7153E}
-  .hub-alt{margin-top:18px;font-size:14px}
-  .hub-alt a{color:#8a8a8a;text-decoration:none}
-  .hub-alt a:hover{text-decoration:underline}
+  .hub-alt{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .hub-alt a{display:inline-block;padding:10px 16px;border:1.5px solid var(--line);border-radius:999px;
+    color:var(--wine);background:var(--white);font-weight:700;font-size:14px;text-decoration:none;
+    letter-spacing:.01em;transition:border-color .15s,background .15s}
+  .hub-alt a:hover{border-color:var(--wine);background:#fdf3f5}
 </style></head><body>
 
 <div class="app">
@@ -303,7 +305,7 @@
         <button class="btn btn-primary" id="hGo" type="button" disabled>Pokračovat</button>
         <p class="hub-msg" id="hMsg">Načítám soupisku…</p>
       </div>
-      <p class="hub-alt"><a href="#" id="hCoachLink">Jsem trenér ›</a></p>
+      <p class="hub-alt"><a href="#" id="hCoachLink">Jsem trenér — hodnocení do IDP</a></p>
     </div>
   </div>
 
@@ -324,7 +326,7 @@
           <div class="rarrow">›</div>
         </div>
       </div>
-      <p class="hub-alt"><a href="#" id="hNotMe">Nejsem to já — změnit hráče</a> · <a href="#" id="hCoachLink2">Jsem trenér ›</a></p>
+      <p class="hub-alt"><a href="#" id="hNotMe">Nejsem to já — změnit hráče</a><a href="#" id="hCoachLink2">Jsem trenér — hodnocení do IDP</a></p>
     </div>
   </div>
 
@@ -603,6 +605,7 @@ const CREST="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAGcCAYAAABjt50AA
 const COACH_PASSWORD = "cafc2026"; // TODO: nastavit vlastní heslo
 
 // Napojení na Google Sheets (backend)
+const HUB_ROSTER_URL = 'https://script.google.com/macros/s/AKfycbyCBswrAp8EnUkB3csHd47Et6g5WXf3H3xco51yxb_7yL5zgsIRLxEHJya7Th22a3pp/exec';
 const API_URL = "https://script.google.com/macros/s/AKfycbxk67UDuz2YgDNDB2ATmcpMrrf97XoS2L86vKuaUz8rC-EEQWhXIAlp7_CgyIx8IVOZog/exec";
 // Seznamy se načtou živě z tabulky; tyto ukázkové slouží jen než dorazí data
 const GUEST_PLAYER = {guest:true, label:'➕ Nejsem v seznamu — napíšu jméno (host / test)', gname:'', first:'', last:'', nick:'', year:'', team:'U15', pos:'SZ', hasCode:false};
@@ -924,6 +927,7 @@ function currentLevel(x){let lv=LEVELS[0];for(const l of LEVELS){if(x>=l.min)lv=
 function listPlaceholder(kind){
   if(LISTS_STATE==='loading') return kind==='coach'?'Načítám…':'Načítám hráče…';
   if(LISTS_STATE==='error')   return 'Nepodařilo se načíst — obnov stránku';
+  if(kind==='coach' && (!COACHES || !COACHES.length)) return 'Seznam trenérů se nenačetl — obnov stránku';
   return kind==='coach'?'Vyber sebe':(kind==='cplayer'?'Vyber hráče':'Vyber sebe ze seznamu');
 }
 function pFillPlayers(){const sel=document.getElementById('pPlayer');sel.innerHTML='<option value="">'+listPlaceholder('player')+'</option>';
@@ -1186,10 +1190,39 @@ function loadLists(){
   const s=document.createElement('script');
   s.id=cbName;
   s.src=API_URL+'?action=lists&callback='+cbName;
-  s.onerror=function(){ finish('error'); };
+  s.onerror=function(){ listsFallback(finish); };
   document.body.appendChild(s);
-  // pojistka: kdyby callback nikdy nedorazil, po 10 s ukážeme chybu (ne vzorová jména)
-  setTimeout(function(){ if(!done) finish('error'); }, 10000);
+  // pojistka: kdyby callback nikdy nedorazil, zkusíme záložní zdroj
+  setTimeout(function(){ if(!done) listsFallback(finish); }, 12000);
+}
+
+// IDP backend občas neodpoví. Soupisku pak vezmeme z Roster API
+// (sešit „Redlock — Kadry"), ať hráč nekouká na „Nepodařilo se načíst".
+// Trenéři tam nejsou — ti zůstávají na IDP backendu.
+let LISTS_FALLBACK_TRIED=false;
+function listsFallback(finish){
+  if(LISTS_FALLBACK_TRIED){ finish('error'); return; }
+  LISTS_FALLBACK_TRIED=true;
+  const cb='idpFallback_'+Date.now();
+  let hotovo=false;
+  window[cb]=function(res){
+    hotovo=true;
+    try{
+      if(res && res.ok && Array.isArray(res.players) && res.players.length){
+        PLAYERS = res.players.map(function(p){
+          return { facr_id:p.facr_id, first:p.first, last:p.last, nick:p.nick,
+                   dob:p.dob, year:p.year, team:p.team, pos:p.pos, club:p.club };
+        }).concat([GUEST_PLAYER]);
+        finish('ready');
+      } else finish('error');
+    }catch(e){ finish('error'); }
+    try{ delete window[cb]; }catch(e){}
+  };
+  const s2=document.createElement('script');
+  s2.src=HUB_ROSTER_URL+'?action=lists&club=CAFC&team=U15&callback='+cb+'&t='+Date.now();
+  s2.onerror=function(){ finish('error'); };
+  document.body.appendChild(s2);
+  setTimeout(function(){ if(!hotovo) finish('error'); }, 10000);
 }
 
 function collectPlayerPayload(){
@@ -1390,7 +1423,6 @@ checkForDraft();
 // ============ HUB — jedna identita pro IDP i Taping ============
 // Soupiska se bere z Roster API (sešit „Redlock — Kadry"), ne z listu v IDP,
 // aby oba moduly ukazovaly identicky stejný kádr.
-const HUB_ROSTER_URL = 'https://script.google.com/macros/s/AKfycbyCBswrAp8EnUkB3csHd47Et6g5WXf3H3xco51yxb_7yL5zgsIRLxEHJya7Th22a3pp/exec';
 const HUB_KEY = 'redlock_identity';
 let HUB_ROSTER = [];
 
