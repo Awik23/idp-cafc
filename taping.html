@@ -183,6 +183,7 @@
       </div>
     </div>
     <form id="form"></form>
+    <p class="msg" id="dupMsg" style="color:var(--warn);font-weight:600" hidden></p>
     <div class="actions">
       <button class="btn primary" type="button" id="submitBtn">Odeslat</button>
       <span class="msg" id="submitMsg"></span>
@@ -426,6 +427,37 @@ function update(){
 function setProgress(f,t){ document.getElementById("progFill").style.width=(t?Math.round(f/t*100):0)+"%"; document.getElementById("progTxt").textContent=`${f} / ${t} vyplněno`; }
 function setFlag(l,t,note){ const c=document.getElementById("flagChip"); c.className="flagchip lv-"+l; document.getElementById("flagTxt").textContent=t; document.getElementById("coachNote").textContent=note; }
 
+/* ===== Kolikáté je to vyplnění za dané období ===== */
+function stavJsonp(cb){
+  const obdobi=(document.getElementById("pweek")||{}).value||"";
+  const typ=(mode==="mesic")?"mesic":"tyden";
+  if(!profile||!obdobi){ cb(null); return; }
+  const fn="__stav"+Date.now()+Math.floor(Math.random()*1000);
+  const s=document.createElement("script");
+  let hotovo=false;
+  const konec=function(r){ if(hotovo)return; hotovo=true; try{delete window[fn];}catch(e){} try{s.remove();}catch(e){} cb(r); };
+  window[fn]=function(r){ konec((r&&r.ok)?r:null); };
+  s.onerror=function(){ konec(null); };
+  s.src=BACKEND_URL+"?action=stav&facr_id="+encodeURIComponent(profile.facr_id)
+       +"&obdobi="+encodeURIComponent(obdobi)+"&typ="+typ
+       +"&callback="+fn+"&t="+Date.now();
+  document.body.appendChild(s);
+  setTimeout(function(){ konec(null); },12000);
+}
+function zkontrolujDuplicitu(){
+  const el=document.getElementById("dupMsg");
+  if(!el) return;
+  stavJsonp(function(r){
+    if(!r||typeof r.pocet!=="number"){ state.pocetPred=0; el.hidden=true; return; }
+    state.pocetPred=r.pocet;
+    if(!r.pocet){ el.hidden=true; return; }
+    const co=(mode==="mesic")?"Tenhle měsíc":"Tenhle týden";
+    el.textContent=co+" už máš vyplněný ("+r.pocet+"\u00d7). Můžeš odeslat znovu — trenér pak bere to poslední.";
+    el.hidden=false;
+  });
+}
+(function(){ const i=document.getElementById("pweek"); if(i) i.addEventListener("change",zkontrolujDuplicitu); })();
+
 /* ===== Období podle režimu ===== */
 function isoWeekNow(){
   const d=new Date(); d.setHours(0,0,0,0);
@@ -454,6 +486,7 @@ function syncMode(){
   if(c2) c2.textContent = monthly
     ? "Nemusíš psát romány. Stačí pár vět, ale ať jsou konkrétní."
     : "U každé otázky ťukni číslo 1–10. Co znamená 1 a co 10 máš vždycky napsané pod otázkou.";
+  try{ zkontrolujDuplicitu(); }catch(e){}
 }
 
 /* ===== Režim ===== */
@@ -471,15 +504,35 @@ document.getElementById("submitBtn").onclick=function(){
   const flag=document.getElementById("flagTxt").textContent;
   const payload={ facr_id:profile.facr_id,prijmeni:profile.prijmeni,jmeno:profile.jmeno,klub:profile.klub,kategorie:profile.kategorie,
     typ:monthly?"mesic":"tyden", tyden_iso:document.getElementById("pweek").value||"",
+    obdobi:document.getElementById("pweek").value||"",
     prumer:monthly?"":avg, flag:monthly?"":flag, values:monthly?{}:state.values,
     tagy:monthly?"":state.tags.join("; "),
     r_move:state.reflect.r_move||"", r_one:state.reflect.r_one||"", r_goal:state.reflect.r_goal||"", coachMsg:state.coachMsg||"",
     sekundy:Math.max(0,Math.round((Date.now()-(state.openTs||Date.now()))/1000)),
     kvalita:monthly?"":fillQuality(items) };
+  const pred=(typeof state.pocetPred==="number")?state.pocetPred:0;
   fetch(BACKEND_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)})
-    .then(function(){ finishOK(); })
-    .catch(function(){ finishOK(); }); // no-cors → odpověď je nečitelná; řádek se zapíše
+    .then(function(){ overDoruceni(pred,0); })
+    .catch(function(){ overDoruceni(pred,0); });
 };
+
+/* ===== Ověření, že řádek opravdu dorazil =====
+   POST jde v režimu no-cors, takže odpověď přečíst nejde. Místo slepého
+   „Hotovo" se proto zeptáme backendu zvlášť, jestli počet vyplnění za dané
+   období stoupl. Dokud to nepotvrdí, hráč zelenou fajfku neuvidí. */
+function overDoruceni(pred,pokus){
+  if(pokus>7){ selhaloOdeslani(); return; }
+  setTimeout(function(){
+    stavJsonp(function(r){
+      if(r && typeof r.pocet==="number" && r.pocet>pred){ state.pocetPred=r.pocet; finishOK(r.pocet); return; }
+      overDoruceni(pred,pokus+1);
+    });
+  }, pokus===0?1200:1800);
+}
+function selhaloOdeslani(){
+  document.getElementById("submitBtn").disabled=false;
+  setMsg("Nepodařilo se ověřit, že se odpovědi uložily. Zkontroluj připojení a zkus Odeslat znovu.",true);
+}
 // Odflákne-li to někdo stejným číslem u všech otázek, pozná se to podle
 // rozptylu: otázky míří proti sobě, takže samé stejné kliknutí nedává smysl.
 function fillQuality(items){
@@ -487,7 +540,15 @@ function fillQuality(items){
   if(raw.length<5) return "";
   return (Math.max.apply(null,raw)-Math.min.apply(null,raw))<=1 ? "jednotvárné" : "ok";
 }
-function finishOK(){ state.values={};state.tags=[];state.reflect={};state.coachMsg=""; document.getElementById("submitBtn").disabled=false; setMsg("",false); show('done'); }
+function finishOK(pocet){
+  state.values={};state.tags=[];state.reflect={};state.coachMsg="";
+  document.getElementById("submitBtn").disabled=false; setMsg("",false);
+  const d=document.getElementById("doneMsg");
+  if(d) d.textContent=(pocet&&pocet>1)
+    ? "Uloženo. Za tohle období to bylo "+pocet+". vyplnění — trenér bere to poslední."
+    : "Odesláno trenérovi. Díky!";
+  show('done');
+}
 function setMsg(t,err){ const m=document.getElementById("submitMsg"); m.textContent=t; m.className="msg"+(err?" err":""); }
 document.getElementById("againBtn").onclick=function(){ location.href='./'; };
 
