@@ -6,24 +6,16 @@
 <title>Redlock · Taping</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>
   :root{
-    --ground:#FAF7F6;--surface:#FFFFFF;--surface-2:#F4EFEE;--ink:#1B1416;--muted:#6E6165;--faint:#9A8E90;
-    --hair:#EAE1DF;--hair-strong:#DDD1CF;--brand:#C7153E;--brand-ink:#9E102F;
-    --good:#2E9E5B;--good-bg:#E7F4EC;--warn:#C9820A;--warn-bg:#FBF1DE;--crit:#D93A44;--crit-bg:#FBE7E8;
-    --shadow:0 1px 2px rgba(27,20,22,.04),0 8px 24px -12px rgba(27,20,22,.18);--radius:14px;
+    color-scheme: light;
+    /* Shodné s index.html (IDP) — jeden vizuální systém, žádný tmavý režim. */
+    --ground:#f6f6f4;--surface:#FFFFFF;--surface-2:#f1f1ee;--ink:#1c1c1e;--muted:#6b6b70;--faint:#9a9aa0;
+    --hair:#e7e7ea;--hair-strong:#d8d8dd;--brand:#C7153E;--brand-ink:#9E102F;
+    --good:#4E8C1C;--good-bg:#EEF8E6;--warn:#B9780A;--warn-bg:#FBF1DE;--crit:#C7153E;--crit-bg:#FBE9EE;
+    --shadow:0 1px 2px rgba(28,28,30,.04),0 8px 24px -12px rgba(28,28,30,.16);--radius:14px;
   }
-  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-    --ground:#151011;--surface:#1F1819;--surface-2:#271F20;--ink:#F4ECEA;--muted:#B0A2A3;--faint:#7C6E70;
-    --hair:#332829;--hair-strong:#403334;--brand:#E8536B;--brand-ink:#F2798C;
-    --good:#43C079;--good-bg:#16281E;--warn:#EBB13C;--warn-bg:#2C2313;--crit:#FF6B72;--crit-bg:#2E1719;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);}}
-  :root[data-theme="dark"]{
-    --ground:#151011;--surface:#1F1819;--surface-2:#271F20;--ink:#F4ECEA;--muted:#B0A2A3;--faint:#7C6E70;
-    --hair:#332829;--hair-strong:#403334;--brand:#E8536B;--brand-ink:#F2798C;
-    --good:#43C079;--good-bg:#16281E;--warn:#EBB13C;--warn-bg:#2C2313;--crit:#FF6B72;--crit-bg:#2E1719;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);}
   *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
   body{margin:0;background:var(--ground);color:var(--ink);font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
   .wrap{max-width:760px;margin:0 auto;padding:0 18px 80px}
@@ -32,15 +24,15 @@
   .crest{width:46px;height:46px;object-fit:contain;flex:none}
   .mark::before{content:"";position:absolute;inset:10px 12px 8px;border:2.5px solid #fff;border-bottom:none;border-radius:8px 8px 0 0}
   .mark::after{content:"";position:absolute;left:8px;right:8px;bottom:8px;height:12px;background:#fff;border-radius:3px}
-  .wordmark{font-family:"Anton",sans-serif;font-size:27px;letter-spacing:.02em;line-height:1;text-transform:uppercase}
+  .wordmark{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:27px;letter-spacing:.02em;line-height:1;text-transform:uppercase}
   .wordmark .lock{color:var(--brand)}
-  .tagline{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--muted);margin-top:3px}
+  .tagline{font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--muted);margin-top:3px}
 
   .card{background:var(--surface);border:1px solid var(--hair-strong);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-top:10px}
-  h1{font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;font-size:22px;margin:0 0 4px}
+  h1{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px;margin:0 0 4px}
   .lead{color:var(--muted);font-size:14.5px;margin:0 0 16px;max-width:56ch}
   .field{margin-bottom:13px}
-  .field label{display:block;font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:10.5px;color:var(--faint);margin-bottom:5px}
+  .field label{display:block;font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:10.5px;color:var(--faint);margin-bottom:5px}
   select{width:100%;font-family:inherit;font-size:15.5px;color:var(--ink);background:var(--surface);border:1px solid var(--hair-strong);border-radius:10px;padding:11px}
   select:focus-visible{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
   select:disabled{opacity:.5}
@@ -50,34 +42,34 @@
   .disc{font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.45}
 
   .prof{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--hair);border-radius:99px;padding:7px 8px 7px 15px;margin:4px 0 6px;box-shadow:var(--shadow)}
-  .prof .who{font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;font-size:15px}
-  .prof .lvchip{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:11px;color:#fff;background:var(--brand);padding:3px 9px;border-radius:99px}
+  .prof .who{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:15px}
+  .prof .lvchip{font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:11px;color:#fff;background:var(--brand);padding:3px 9px;border-radius:99px}
   .prof .team{font-size:13px;color:var(--muted)}
-  .prof .edit{margin-left:auto;font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface-2);border:1px solid var(--hair-strong);border-radius:99px;padding:6px 12px;cursor:pointer}
+  .prof .edit{margin-left:auto;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface-2);border:1px solid var(--hair-strong);border-radius:99px;padding:6px 12px;cursor:pointer}
   .prof .edit:hover{color:var(--ink);border-color:var(--brand)}
 
   .context{background:var(--surface);border:1px solid var(--hair);border-radius:12px;padding:15px 17px;margin:12px 0 14px}
-  .context h2{font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:14px;margin:0 0 7px}
+  .context h2{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:14px;margin:0 0 7px}
   .context p{font-size:14px;color:var(--muted);margin:7px 0;line-height:1.5}
   .context strong{color:var(--ink);font-weight:600}
 
   .toolrow{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;align-items:end}
-  .seg-label{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:10.5px;color:var(--faint);margin-bottom:6px}
+  .seg-label{font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:10.5px;color:var(--faint);margin-bottom:6px}
   .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface-2);padding:5px;border-radius:12px;border:1px solid var(--hair)}
-  .seg button{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:13.5px;color:var(--muted);background:transparent;border:0;border-radius:8px;padding:9px 6px;cursor:pointer;line-height:1.1}
+  .seg button{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:13.5px;color:var(--muted);background:transparent;border:0;border-radius:8px;padding:9px 6px;cursor:pointer;line-height:1.1}
   .seg button[aria-pressed="true"]{background:var(--brand);color:#fff;box-shadow:var(--shadow)}
   .weekfield input{width:100%;font-family:inherit;font-size:15px;color:var(--ink);background:var(--surface);border:1px solid var(--hair-strong);border-radius:10px;padding:9px 11px}
 
   .progress{display:flex;align-items:center;gap:11px;margin:14px 0 2px}
   .progress-bar{flex:1;height:7px;background:var(--surface-2);border:1px solid var(--hair);border-radius:99px;overflow:hidden}
   .progress-bar span{display:block;height:100%;width:0;background:var(--brand);border-radius:99px;transition:width .25s}
-  .progress-txt{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:12px;color:var(--muted);white-space:nowrap}
+  .progress-txt{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:12px;color:var(--muted);white-space:nowrap}
 
   .meter{position:sticky;top:10px;z-index:20;margin:12px 0 6px;background:var(--surface);border:1px solid var(--hair-strong);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;display:flex;align-items:center;gap:16px}
-  .score{font-family:"Anton",sans-serif;font-size:44px;line-height:.82;font-variant-numeric:tabular-nums}
-  .score small{font-family:"Barlow Semi Condensed",sans-serif;font-size:14px;color:var(--faint);font-weight:600}
+  .score{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:44px;line-height:.82;font-variant-numeric:tabular-nums}
+  .score small{font-family:"Barlow Condensed",sans-serif;font-size:14px;color:var(--faint);font-weight:600}
   .meter-mid{flex:1;min-width:0}
-  .flagchip{display:inline-flex;align-items:center;gap:7px;font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:12.5px;padding:4px 11px;border-radius:99px}
+  .flagchip{display:inline-flex;align-items:center;gap:7px;font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:12.5px;padding:4px 11px;border-radius:99px}
   .dot{width:9px;height:9px;border-radius:50%}
   .lv-good{color:var(--good);background:var(--good-bg)} .lv-good .dot{background:var(--good)}
   .lv-warn{color:var(--warn);background:var(--warn-bg)} .lv-warn .dot{background:var(--warn)}
@@ -88,7 +80,7 @@
 
   section.grp{margin-top:22px}
   .grp-head{display:flex;align-items:baseline;gap:10px;padding-bottom:8px;border-bottom:2px solid var(--hair-strong);margin-bottom:6px}
-  .grp-head h2{font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:16px;margin:0}
+  .grp-head h2{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:16px;margin:0}
   .grp-head .lock-note{margin-left:auto;font-size:11px;color:var(--faint);font-weight:500}
   .grp-sub{font-size:12.5px;color:var(--muted);margin:0 0 4px}
 
@@ -97,19 +89,19 @@
   .item .q{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
   .item .q .lab{font-weight:600;font-size:15.5px}
   .num{color:var(--faint);font-variant-numeric:tabular-nums;margin-right:3px}
-  .item .q .val{font-family:"Anton",sans-serif;font-size:20px;color:var(--brand);font-variant-numeric:tabular-nums;min-width:1.4em;text-align:right}
+  .item .q .val{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:20px;color:var(--brand);font-variant-numeric:tabular-nums;min-width:1.4em;text-align:right}
   .item.low .q .val{color:var(--crit)} .item.unset .q .val{color:var(--faint)}
   .item .help{font-size:12.5px;color:var(--muted);margin:0 0 10px;line-height:1.35}
   .anchors{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);margin-top:7px}
   .nums{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:2px}
-  .numbtn{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:14px;color:var(--muted);background:var(--surface-2);border:1px solid var(--hair-strong);border-radius:8px;padding:10px 0;cursor:pointer;font-variant-numeric:tabular-nums}
+  .numbtn{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:14px;color:var(--muted);background:var(--surface-2);border:1px solid var(--hair-strong);border-radius:8px;padding:10px 0;cursor:pointer;font-variant-numeric:tabular-nums}
   .numbtn:hover{border-color:var(--brand);color:var(--ink)}
   .numbtn[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
   .numbtn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   .item.tags{padding:16px 2px}
   .tags-q{font-weight:600;font-size:15px;margin:0 0 9px}
   .chips{display:flex;flex-wrap:wrap;gap:7px}
-  .chip{font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:13px;color:var(--muted);background:var(--surface-2);border:1px solid var(--hair-strong);border-radius:99px;padding:7px 13px;cursor:pointer}
+  .chip{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:13px;color:var(--muted);background:var(--surface-2);border:1px solid var(--hair-strong);border-radius:99px;padding:7px 13px;cursor:pointer}
   .chip:hover{border-color:var(--brand)} .chip[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
   .reflect textarea{width:100%;font-family:inherit;font-size:14.5px;color:var(--ink);background:var(--surface);border:1px solid var(--hair-strong);border-radius:10px;padding:10px 11px;resize:vertical;min-height:60px}
   .reflect textarea:focus-visible{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
@@ -117,14 +109,14 @@
   .reflect .help{font-size:12.5px;color:var(--muted);margin:-2px 0 8px;line-height:1.4}
 
   .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px;align-items:center}
-  .btn{font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:13.5px;border-radius:11px;padding:13px 20px;cursor:pointer;border:1px solid var(--hair-strong);background:var(--surface);color:var(--ink)}
+  .btn{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:13.5px;border-radius:11px;padding:13px 20px;cursor:pointer;border:1px solid var(--hair-strong);background:var(--surface);color:var(--ink)}
   .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
   .btn.primary:hover{background:var(--brand-ink)} .btn.primary:disabled{opacity:.45;cursor:not-allowed}
   .btn:hover{border-color:var(--brand)} .btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   .msg{font-size:13.5px;color:var(--muted);margin-top:12px}
   .msg.err{color:var(--crit);font-weight:600}
   .done{text-align:center;padding:40px 20px}
-  .done .big{font-family:"Anton",sans-serif;font-size:40px;color:var(--good);margin-bottom:6px}
+  .done .big{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:40px;color:var(--good);margin-bottom:6px}
   @media (max-width:520px){.toolrow{grid-template-columns:1fr}.wordmark{font-size:24px}.score{font-size:38px}}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .back{margin:0 0 14px;font-size:14px}
