@@ -130,7 +130,7 @@
     <img class="crest" id="crest" alt="ČAFC">
     <div>
       <div class="wordmark">IDP <span class="lock">CAFC</span></div>
-      <div class="tagline">Týdenní check-in</div>
+      <div class="tagline" id="tagline">Týdenní check-in</div>
     </div>
   </header>
 
@@ -160,8 +160,8 @@
     <div class="prof" id="prof"></div>
     <div class="context">
       <h2>O co tu jde?</h2>
-      <p>Krátký check-in, který vyplňuješ jednou týdně. Ber to jako zpětnou vazbu pro trenéra — čím přesněji odpovíš, tím líp.</p>
-      <p>U každé otázky ťukni číslo 1–10. Co znamená 1 a co 10 máš vždycky napsané pod otázkou.</p>
+      <p id="ctx1">Krátký check-in, který vyplňuješ jednou týdně. Ber to jako zpětnou vazbu pro trenéra — čím přesněji odpovíš, tím líp.</p>
+      <p id="ctx2">U každé otázky ťukni číslo 1–10. Co znamená 1 a co 10 máš vždycky napsané pod otázkou.</p>
     </div>
     <div class="toolrow">
       <div>
@@ -171,7 +171,7 @@
           <button type="button" data-mode="mesic" aria-pressed="false">Měsíční ohlédnutí</button>
         </div>
       </div>
-      <div class="field weekfield" style="margin:0"><label for="pweek">Za který týden</label><input id="pweek" type="week"></div>
+      <div class="field weekfield" style="margin:0"><label for="pweek" id="pweekLab">Za který týden</label><input id="pweek" type="week"></div>
     </div>
     <div class="progress"><div class="progress-bar"><span id="progFill"></span></div><span class="progress-txt" id="progTxt">0 / 0</span></div>
     <div class="meter" aria-live="polite">
@@ -221,27 +221,27 @@ const LEVELS={zaklad:'U14–U16',standard:'U17–U19',profi:'Dospělí'};
 
 const ITEMS=[
   {id:"unava",g:"telo",dir:"neg",cats:ALL,lab:"Únava",help:"Jak unavený ses tento týden cítil na trénincích?",lo:"Svěží",hi:"Úplně vyčerpaný"},
-  {id:"spanek",g:"telo",dir:"pos",cats:ALL,lab:"Spánek",help:"Jak kvalitní jsi měl tento týden spánek?",lo:"Špatný",hi:"Výborný"},
+  {id:"spanek",g:"telo",dir:"pos",cats:ALL,lab:"Spánek",help:"Jak jsi tento týden spal?",lo:"Špatný",hi:"Výborný"},
   {id:"bolest",g:"telo",dir:"neg",cats:ALL,lab:"Bolest svalů",help:"Bolely tě tento týden svaly nebo tě něco pobolívalo?",lo:"Vůbec",hi:"Hodně bolely"},
   {id:"stres",g:"telo",dir:"neg",cats:ALL,lab:"Stres",help:"Jak velký tlak nebo nervozitu jsi tento týden cítil?",lo:"Klid",hi:"Velký tlak"},
   {id:"treninky",g:"fotbal",dir:"pos",cats:ALL,lab:"Tréninky",help:"Jak ti šly tréninky tento týden — dařilo se ti?",lo:"Vůbec nešly",hi:"Šly skvěle"},
   {id:"hlava",g:"fotbal",dir:"pos",cats:ALL,lab:"Soustředěnost",help:"Jak moc jsi byl tento týden hlavou u tréninku?",lo:"Myšlenkama jinde",hi:"Plně u toho"},
-  {id:"sebeduvera",g:"fotbal",dir:"pos",cats:["standard","profi"],lab:"Sebedůvěra na hřišti",help:"Věřil sis tento týden na hřišti?",lo:"Nevěřil",hi:"Věřil si"},
-  {id:"chut",g:"fotbal",dir:"pos",cats:ALL,lab:"Chuť do fotbalu",help:"Jak moc ses tento týden těšil na fotbal?",lo:"Nechtělo se mi",hi:"Moc těšil"},
-  {id:"tym",g:"fotbal",dir:"pos",cats:ALL,lab:"Vztahy v týmu",help:"Jak ti bylo tento týden v týmu, mezi klukama?",lo:"Cítil se mimo",hi:"Bylo super"},
+  {id:"sebeduvera",g:"fotbal",dir:"pos",cats:["standard","profi"],lab:"Sebedůvěra na hřišti",help:"Věřil sis tento týden na hřišti?",lo:"Nevěřil si",hi:"Věřil si"},
+  {id:"chut",g:"fotbal",dir:"pos",cats:ALL,lab:"Chuť do fotbalu",help:"Jak moc ses tento týden těšil na fotbal?",lo:"Nechtělo se mi",hi:"Moc jsem se těšil"},
+  {id:"tym",g:"fotbal",dir:"pos",cats:ALL,lab:"Vztahy v týmu",help:"Jak ti bylo tento týden v týmu, mezi klukama?",lo:"Cítil jsem se mimo",hi:"Bylo super"},
   {id:"load",g:"zatez",dir:"neg",scored:false,cats:["standard","profi","zaklad"],lab:"Náročnost týdne",help:"Jak fyzicky náročný byl pro tebe tento týden celkově?",lo:"Lehký",hi:"Vyčerpávající"},
   {id:"offload",g:"zivot",dir:"neg",cats:ALL,lab:"Zátěž mimo fotbal",help:"Zatěžovalo tě tento týden něco mimo fotbal (škola, doma, osobní věci)?",lo:"Vůbec, klid",hi:"Hodně mě to táhlo dolů"},
   {id:"src",g:"zivot",type:"tags",cats:ALL,q:"Když tě něco mimo fotbal zatěžovalo, čeho se to týkalo? Můžeš vybrat víc možností.",
      opts:["Škola / písemky","Doma","Zdraví / zranění","Kamarádi / vztahy","Něco jiného"],
      optsByCat:{profi:["Práce","Peníze","Doma / rodina","Zdraví","Vztahy","Něco jiného"]}},
-  {id:"rovnovaha",g:"zivot",dir:"pos",cats:["profi"],lab:"Rovnováha",help:"Stíhal jsi tento týden vedle sebe práci, fotbal i osobní život?",lo:"Nestíhal nic",hi:"Měl srovnané"}
+  {id:"rovnovaha",g:"zivot",dir:"pos",cats:["profi"],lab:"Rovnováha",help:"Stíhal jsi tento týden vedle sebe práci, fotbal i osobní život?",lo:"Nestíhal jsem nic",hi:"Měl jsem to srovnané"}
 ];
-const GROUPS={telo:{t:"Tělo & pohoda",sub:"Jak na tom tento týden bylo tvoje tělo."},fotbal:{t:"Fotbal",sub:"Jak ti šlo tento týden na hřišti a v hlavě."},zatez:{t:"Zátěž týdne",sub:"Nepočítá se do průměru — jen orientačně, kolik toho fyzicky bylo."},zivot:{t:"Život mimo fotbal"}};
+const GROUPS={telo:{t:"Tělo a pohoda",sub:"Jak na tom tento týden bylo tvoje tělo."},fotbal:{t:"Fotbal",sub:"Jak ti šlo tento týden na hřišti a v hlavě."},zatez:{t:"Zátěž týdne",sub:"Nepočítá se do průměru — jen orientačně, kolik toho fyzicky bylo."},zivot:{t:"Život mimo fotbal"}};
 const GROUP_ORDER=["telo","fotbal","zatez","zivot"];
 const REFLECT={
-  zaklad:[["r_move","Co ti šlo poslední měsíc nejlíp a co tě naopak brzdilo? (na hřišti i mimo něj)"],["r_one","Jedna věc, na které chceš příští měsíc zamakat"]],
-  standard:[["r_move","Co ti šlo poslední měsíc nejlíp a co tě naopak brzdilo? (na hřišti i mimo něj)"],["r_one","Jedna konkrétní věc, na které chceš příští měsíc zamakat"]],
-  profi:[["r_move","Co mi šlo poslední měsíc nejlíp a co mě brzdilo? (na hřišti i mimo něj)"],["r_one","Jedna konkrétní věc, na které chci příští měsíc zamakat"],["r_goal","Jsem blíž svému cíli? V čem konkrétně?"]]
+  zaklad:[["r_move","Co ti šlo poslední měsíc nejlíp a co tě naopak brzdilo? (na hřišti i mimo něj)"],["r_one","Na čem chceš příští měsíc zamakat?"]],
+  standard:[["r_move","Co ti šlo poslední měsíc nejlíp a co tě naopak brzdilo? (na hřišti i mimo něj)"],["r_one","Na čem konkrétně chceš příští měsíc zamakat?"]],
+  profi:[["r_move","Co ti šlo poslední měsíc nejlíp a co tě brzdilo? (na hřišti i mimo něj)"],["r_one","Na čem konkrétně chceš příští měsíc zamakat?"],["r_goal","Jsi blíž svému cíli? V čem konkrétně?"]]
 };
 
 /* ===== Stav ===== */
@@ -347,6 +347,7 @@ function well(i,v){return i.dir==="neg"?(11-v):v;}
 function isBad(i,v){return i.scored!==false&&well(i,v)<=3;}
 
 function render(){
+  syncMode();
   form.innerHTML="";
   const monthly=mode==="mesic";
   document.querySelector(".meter").hidden=monthly;
@@ -424,6 +425,36 @@ function update(){
 }
 function setProgress(f,t){ document.getElementById("progFill").style.width=(t?Math.round(f/t*100):0)+"%"; document.getElementById("progTxt").textContent=`${f} / ${t} vyplněno`; }
 function setFlag(l,t,note){ const c=document.getElementById("flagChip"); c.className="flagchip lv-"+l; document.getElementById("flagTxt").textContent=t; document.getElementById("coachNote").textContent=note; }
+
+/* ===== Období podle režimu ===== */
+function isoWeekNow(){
+  const d=new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+3-((d.getDay()+6)%7));
+  const w1=new Date(d.getFullYear(),0,4);
+  const wk=1+Math.round(((d-w1)/86400000-3+((w1.getDay()+6)%7))/7);
+  return d.getFullYear()+"-W"+String(wk).padStart(2,"0");
+}
+function monthNow(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function syncMode(){
+  const monthly = mode==="mesic";
+  const t=document.getElementById("tagline");
+  if(t) t.textContent = monthly ? "Měsíční ohlédnutí" : "Týdenní check-in";
+  const lab=document.getElementById("pweekLab");
+  if(lab) lab.textContent = monthly ? "Za který měsíc" : "Za který týden";
+  const inp=document.getElementById("pweek");
+  if(inp){
+    const want = monthly ? "month" : "week";
+    if(inp.type!==want){ inp.type=want; inp.value = monthly ? monthNow() : isoWeekNow(); }
+    else if(!inp.value){ inp.value = monthly ? monthNow() : isoWeekNow(); }
+  }
+  const c1=document.getElementById("ctx1"), c2=document.getElementById("ctx2");
+  if(c1) c1.textContent = monthly
+    ? "Ohlédnutí za uplynulým měsícem. Píšeš vlastními slovy — čísla tentokrát nevyplňuješ."
+    : "Krátký check-in, který vyplňuješ jednou týdně. Ber to jako zpětnou vazbu pro trenéra — čím přesněji odpovíš, tím líp.";
+  if(c2) c2.textContent = monthly
+    ? "Nemusíš psát romány. Stačí pár vět, ale ať jsou konkrétní."
+    : "U každé otázky ťukni číslo 1–10. Co znamená 1 a co 10 máš vždycky napsané pod otázkou.";
+}
 
 /* ===== Režim ===== */
 document.querySelectorAll(".seg button").forEach(b=>{ b.onclick=function(){ document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed","false")); b.setAttribute("aria-pressed","true"); mode=b.dataset.mode; render(); }; });
