@@ -427,9 +427,20 @@ function update(){
 function setProgress(f,t){ document.getElementById("progFill").style.width=(t?Math.round(f/t*100):0)+"%"; document.getElementById("progTxt").textContent=`${f} / ${t} vyplněno`; }
 function setFlag(l,t,note){ const c=document.getElementById("flagChip"); c.className="flagchip lv-"+l; document.getElementById("flagTxt").textContent=t; document.getElementById("coachNote").textContent=note; }
 
+/* ===== Token období =====
+   Google Sheets si "2026-10" přeloží na datum a porovnávání v backendu pak
+   nikdy nesedne. "2026-W40" se jako datum přečíst nedá, proto týdenní režim
+   fungoval a měsíční ne. Měsíc proto posíláme jako "2026-M10" — stejný tvar
+   jako týden, datum z toho nikdy nebude. */
+function obdobiToken(){
+  const v=(document.getElementById("pweek")||{}).value||"";
+  if(!v) return "";
+  return (mode==="mesic") ? v.replace("-","-M") : v;
+}
+
 /* ===== Kolikáté je to vyplnění za dané období ===== */
 function stavJsonp(cb){
-  const obdobi=(document.getElementById("pweek")||{}).value||"";
+  const obdobi=obdobiToken();
   const typ=(mode==="mesic")?"mesic":"tyden";
   if(!profile||!obdobi){ cb(null); return; }
   const fn="__stav"+Date.now()+Math.floor(Math.random()*1000);
@@ -504,7 +515,7 @@ document.getElementById("submitBtn").onclick=function(){
   const flag=document.getElementById("flagTxt").textContent;
   const payload={ facr_id:profile.facr_id,prijmeni:profile.prijmeni,jmeno:profile.jmeno,klub:profile.klub,kategorie:profile.kategorie,
     typ:monthly?"mesic":"tyden", tyden_iso:document.getElementById("pweek").value||"",
-    obdobi:document.getElementById("pweek").value||"",
+    obdobi:obdobiToken(),
     prumer:monthly?"":avg, flag:monthly?"":flag, values:monthly?{}:state.values,
     tagy:monthly?"":state.tags.join("; "),
     r_move:state.reflect.r_move||"", r_one:state.reflect.r_one||"", r_goal:state.reflect.r_goal||"", coachMsg:state.coachMsg||"",
