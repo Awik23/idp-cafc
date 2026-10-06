@@ -60,6 +60,11 @@
   @media(max-width:820px){.roster{position:static}}
   .rsearch{width:100%;font-family:inherit;font-size:14px;padding:10px 13px;border:1.5px solid var(--line);border-radius:10px;margin-bottom:12px}
   .rsearch:focus{outline:none;border-color:var(--wine)}
+  .rtogg{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);margin:-6px 0 12px;cursor:pointer;user-select:none}
+  .rtogg input{accent-color:var(--wine);width:15px;height:15px;cursor:pointer}
+  .pcard.byvaly{opacity:.6}
+  .pcard.byvaly .nm{font-weight:600}
+  .tag-byvaly{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;background:var(--surface);color:var(--wine);font-size:10.5px;font-weight:700;letter-spacing:.03em;vertical-align:1px}
   .rscroll{max-height:calc(100vh - 150px);overflow-y:auto;padding-right:4px}
   @media(max-width:820px){.rscroll{max-height:none}}
   .pos-group{margin-bottom:8px}
@@ -221,6 +226,7 @@
   <div class="cols">
     <div class="roster">
       <input class="rsearch" id="rsearch" placeholder="🔍 Hledat hráče…" oninput="buildRoster()">
+      <label class="rtogg"><input type="checkbox" id="rNeakt" onchange="prepniNeaktivni()">Zobrazit i bývalé hráče</label>
       <div class="rscroll" id="rosterList"></div>
     </div>
     <div class="detail" id="detail"><div class="empty">Vyber hráče vlevo a uvidíš porovnání jeho pohledu s pohledem trenérů.</div></div>
@@ -319,17 +325,30 @@ function loadData(cb){
   document.body.appendChild(s);
 }
 
+// Soupiska: ve výchozím stavu jen aktuální kádr. Bývalí hráči zůstávají
+// v databázi (Kadry, status=neaktivní) a dají se zobrazit přepínačem —
+// jejich historie se nikdy nemaže, jen se běžně neplete do přehledu.
+let UKAZ_NEAKTIVNI=false;
+function jeAktivni_(p){return String(p.status||'').toLowerCase().indexOf('neaktiv')<0;}
+function prepniNeaktivni(){
+  const el=document.getElementById('rNeakt');
+  UKAZ_NEAKTIVNI = !!(el&&el.checked);
+  CURRENT_ROSTER = buildTeamPlayers(curTeam);
+  buildRoster();
+}
+
 // Odvození týmů z hráčů (a klub = ČAFC natvrdo prozatím)
 function teamsInData(){
-  const set=[...new Set(DB.players.map(p=>p.team).filter(Boolean))];
-  return set.map(t=>({id:t, name:t, sub:DB.players.filter(p=>p.team===t).length+' hráčů'}));
+  const akt=DB.players.filter(jeAktivni_);
+  const set=[...new Set(akt.map(p=>p.team).filter(Boolean))];
+  return set.map(t=>({id:t, name:t, sub:akt.filter(p=>p.team===t).length+' hráčů'}));
 }
 function coachRole(name){const c=DB.coaches.find(c=>c.name===name);return c?c.role:'';}
 function teamCoaches(team){return DB.coaches.filter(c=>!team||c.team===team);}
 
 // Poskládá hráče daného týmu i s jejich hodnoceními z responses
 function buildTeamPlayers(team){
-  const roster=DB.players.filter(p=>p.team===team);
+  const roster=DB.players.filter(p=>p.team===team && (UKAZ_NEAKTIVNI || jeAktivni_(p)));
   return roster.map(p=>{
     const full=(p.last+' '+p.first).trim();
     // Párujeme PRIMÁRNĚ přes facr_id (stabilní), jméno je jen záloha pro staré řádky.
@@ -354,7 +373,7 @@ function buildTeamPlayers(team){
       verbal:(r.data&&r.data.verbal)||''
     }));
     return {
-      facr_id:p.facr_id||'', first:p.first, last:p.last, nick:p.nick, year:p.year, pos:p.pos, team:p.team,
+      facr_id:p.facr_id||'', status:p.status||'', first:p.first, last:p.last, nick:p.nick, year:p.year, pos:p.pos, team:p.team,
       self:(self&&self.data&&self.data.answers)||null,
       open:(self&&self.data&&self.data.open)||null,
       fun:(self&&self.data&&self.data.fun)||null,
@@ -369,12 +388,14 @@ function buildTeamPlayers(team){
 }
 
 function _escO(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+// SIROTEK = odpověď, kterou nelze navázat na NIKOHO v kartotéce (chybí facr_id).
+// Odpověď bývalého hráče sirotek NENÍ — ten v Kadry je, jen má status neaktivní.
+// Kdyby se obojí míchalo, varování by každou sezónou narostlo a přestalo se číst.
 function orphanResponses(){
-  const names=new Set();
   const ids=new Set();
-  DB.players.forEach(p=>{names.add((p.last+' '+p.first).trim());names.add((p.first+' '+p.last).trim());if(p.facr_id)ids.add(String(p.facr_id));});
+  DB.players.forEach(p=>{if(p.facr_id)ids.add(String(p.facr_id));});
   const cur=DB.responses.filter(r=>(!CUR_SEASON||r.season===CUR_SEASON)&&(!CUR_PERIOD||r.period===CUR_PERIOD));
-  return cur.filter(r=>r.player && !(r.facr_id && ids.has(String(r.facr_id))) && !names.has(String(r.player).trim()));
+  return cur.filter(r=>!(r.facr_id && ids.has(String(r.facr_id))));
 }
 function orphanHTML(){
   const o=orphanResponses(); if(!o.length) return '';
@@ -442,8 +463,8 @@ function buildRoster(){const host=document.getElementById('rosterList');host.inn
     gh.innerHTML='<span class="band" style="background:'+g.color+'"></span>'+g.name+'<span class="cnt">'+inGroup.length+'</span><span class="caret">▼</span>';
     gh.onclick=()=>gd.classList.toggle('collapsed');gd.appendChild(gh);
     const gl=document.createElement('div');gl.className='glist';
-    inGroup.forEach(p=>{const ov=overall(p.self);const card=document.createElement('div');card.className='pcard';card.style.borderLeftColor=g.color;
-      card.innerHTML='<div><div class="nm">'+p.last+' '+p.first+'</div><div class="sub">'+(POS_LABEL[p.pos]||p.pos)+(p.nick?' · '+p.nick:'')+'</div></div><div class="rt">'+(ov||'—')+'<small>'+(p.selfFilled?'✓':'✗')+' hráč · '+((p.filledCoachNames||[]).length)+'/'+teamCoaches(p.team).length+' tren.</small></div>';
+    inGroup.forEach(p=>{const ov=overall(p.self);const card=document.createElement('div');const byv=!jeAktivni_(p);card.className='pcard'+(byv?' byvaly':'');card.style.borderLeftColor=g.color;
+      card.innerHTML='<div><div class="nm">'+p.last+' '+p.first+(byv?'<span class="tag-byvaly">BÝVALÝ</span>':'')+'</div><div class="sub">'+(POS_LABEL[p.pos]||p.pos)+(p.nick?' · '+p.nick:'')+'</div></div><div class="rt">'+(ov||'—')+'<small>'+(p.selfFilled?'✓':'✗')+' hráč · '+((p.filledCoachNames||[]).length)+'/'+teamCoaches(p.team).length+' tren.</small></div>';
       card.onclick=()=>{document.querySelectorAll('.pcard').forEach(c=>c.classList.remove('active'));card.classList.add('active');showPlayer(p);
         const d=document.getElementById('detail'); if(window.innerWidth<=820){d.scrollIntoView({behavior:'smooth',block:'start'});} else {window.scrollTo({top:0,behavior:'smooth'});}};
       gl.appendChild(card);});
