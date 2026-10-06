@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IDP CAFC — Týdenní check-in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    /* Shodné s index.html a taping.html — jeden vizuální systém. */
+    --ground:#f6f6f4;--surface:#FFFFFF;--surface-2:#f1f1ee;--ink:#1c1c1e;--muted:#6b6b70;--faint:#9a9aa0;
+    --hair:#e7e7ea;--hair-strong:#d8d8dd;--brand:#C7153E;--brand-ink:#9E102F;
+    --good:#4E8C1C;--good-bg:#EEF8E6;--warn:#B9780A;--warn-bg:#FBF1DE;--crit:#C7153E;--crit-bg:#FBE9EE;
+    --shadow:0 1px 2px rgba(28,28,30,.04),0 8px 24px -12px rgba(28,28,30,.16);--radius:14px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 18px 90px}
+  [hidden]{display:none!important}
+
+  header.top{padding:26px 0 14px;display:flex;align-items:center;gap:12px}
+  .crest{width:42px;height:42px;flex:none;object-fit:contain}
+  .wordmark{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:27px;letter-spacing:.02em;line-height:1;text-transform:uppercase}
+  .wordmark .lock{color:var(--brand)}
+  .tagline{font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--muted);margin-top:3px}
+
+  .card{background:var(--surface);border:1px solid var(--hair-strong);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-top:14px}
+  h1{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:23px;margin:0 0 4px}
+  h2{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:15px;margin:0 0 2px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 14px}
+  .lead{color:var(--muted);font-size:14.5px;margin:0 0 16px;max-width:60ch}
+
+  label.fl{display:block;font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:10.5px;color:var(--faint);margin-bottom:5px}
+  input,select{width:100%;font-family:inherit;font-size:15.5px;color:var(--ink);background:var(--surface);border:1px solid var(--hair-strong);border-radius:10px;padding:10px 11px}
+  input:focus-visible,select:focus-visible{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
+  .btn{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:13.5px;border-radius:11px;padding:12px 20px;cursor:pointer;border:1px solid var(--hair-strong);background:var(--surface);color:var(--ink)}
+  .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .btn.primary:hover{background:var(--brand-ink)}
+  .btn:hover{border-color:var(--brand)}
+  .btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+  /* ovládací řádek — filtry nad grafy, v jedné lince */
+  .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-top:14px}
+  .controls .f{min-width:170px}
+  .controls .spacer{flex:1}
+
+  /* KPI dlaždice */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:14px}
+  .kpi{background:var(--surface);border:1px solid var(--hair-strong);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 17px}
+  .kpi .lbl{font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:10.5px;color:var(--faint)}
+  .kpi .num{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:34px;line-height:1.1;font-variant-numeric:tabular-nums;margin-top:3px}
+  .kpi .note{font-size:12px;color:var(--muted);margin-top:2px}
+  .kpi.alarm .num{color:var(--crit)}
+
+  /* stavové odznaky — vždy barva + text, nikdy barva sama */
+  .badge{display:inline-flex;align-items:center;gap:6px;font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:11.5px;padding:3px 9px;border-radius:99px;white-space:nowrap}
+  .badge .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .b-good{color:var(--good);background:var(--good-bg)} .b-good .dot{background:var(--good)}
+  .b-warn{color:var(--warn);background:var(--warn-bg)} .b-warn .dot{background:var(--warn)}
+  .b-crit{color:var(--crit);background:var(--crit-bg)} .b-crit .dot{background:var(--crit)}
+  .b-none{color:var(--muted);background:var(--surface-2)} .b-none .dot{background:var(--faint)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+  .chip{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:13px;color:var(--crit);background:var(--crit-bg);border:1px solid var(--crit-bg);border-radius:99px;padding:6px 12px}
+  .chip.ok{color:var(--good);background:var(--good-bg);border-color:var(--good-bg)}
+
+  table{width:100%;border-collapse:collapse;font-size:14.5px}
+  th{font-family:"Barlow Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;color:var(--faint);text-align:left;padding:0 10px 7px;border-bottom:2px solid var(--hair-strong);white-space:nowrap}
+  th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+  td{padding:10px;border-bottom:1px solid var(--hair);vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--surface-2)}
+  .who{font-weight:600}
+  .big{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:19px;font-variant-numeric:tabular-nums}
+  .slabe{color:var(--muted);font-size:13px}
+  .tbl-wrap{overflow-x:auto;margin-top:6px}
+
+  /* graf */
+  .chart{margin-top:8px;position:relative}
+  .chart svg{display:block;width:100%;height:auto;overflow:visible}
+  .gridline{stroke:var(--hair);stroke-width:1}
+  .axis-txt{fill:var(--faint);font-size:11px;font-family:"Barlow",sans-serif}
+  .line{fill:none;stroke:var(--brand);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .pt{fill:var(--brand);stroke:var(--surface);stroke-width:2}
+  .hit{fill:transparent;cursor:pointer}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:12.5px;line-height:1.35;padding:7px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-115%);opacity:0;transition:opacity .12s}
+  .tip.on{opacity:1}
+  .spark{display:block}
+  .spark path{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+  .spark circle{fill:var(--brand)}
+
+  .msg{font-size:13.5px;color:var(--muted);margin-top:10px}
+  .msg.err{color:var(--crit);font-weight:600}
+  .vzkaz{border-left:3px solid var(--hair-strong);padding:2px 0 2px 13px;margin:14px 0}
+  .vzkaz .kdo{font-weight:600;font-size:14.5px}
+  .vzkaz .kdy{color:var(--faint);font-size:12px;margin-left:6px;font-variant-numeric:tabular-nums}
+  .vzkaz .co{margin-top:3px;white-space:pre-wrap}
+  .vzkaz .otazka{color:var(--muted);font-size:12.5px;margin-top:7px}
+  .prazdno{color:var(--muted);font-size:14px;padding:6px 0}
+  .legenda{font-size:12px;color:var(--faint);margin-top:10px;line-height:1.5}
+  .back{padding:10px 0 0;font-size:14px}
+  .back a{color:var(--muted);text-decoration:none}
+  .back a:hover{color:var(--brand);text-decoration:underline}
+  @media (max-width:560px){ .wrap{padding:0 14px 70px} .kpi .num{font-size:28px} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <img class="crest" id="crest" alt="ČAFC">
+    <div>
+      <div class="wordmark">IDP <span class="lock">CAFC</span></div>
+      <div class="tagline">Týdenní check-in — přehled pro trenéry</div>
+    </div>
+  </header>
+
+  <!-- BRÁNA -->
+  <div id="gate" class="card">
+    <h1>Přístup</h1>
+    <p class="lead">Zadej trenérský PIN. Přehled ukazuje odpovědi hráčů z týdenního check-inu — ber je jako citlivé.</p>
+    <div style="max-width:260px"><label class="fl" for="pin">PIN</label><input id="pin" type="password" autocomplete="off"></div>
+    <div style="margin-top:14px"><button class="btn primary" id="gateBtn" type="button">Vstoupit</button></div>
+    <p class="msg" id="gateMsg"></p>
+  </div>
+
+  <!-- NAČÍTÁNÍ -->
+  <div id="loading" class="card" hidden>
+    <p class="msg" id="loadMsg">Načítám data…</p>
+    <div id="retryWrap" hidden style="margin-top:12px"><button class="btn" id="retryBtn" type="button">Zkusit znovu</button></div>
+  </div>
+
+  <!-- APLIKACE -->
+  <div id="app" hidden>
+
+    <div class="controls">
+      <div class="f">
+        <label class="fl" for="fTym">Tým</label>
+        <select id="fTym"></select>
+      </div>
+      <div class="f">
+        <label class="fl" for="fTyden">Týden</label>
+        <select id="fTyden"></select>
+      </div>
+      <div class="spacer"></div>
+      <div><button class="btn" id="refreshBtn" type="button">Načíst znovu</button></div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="lbl">Vyplnilo</div><div class="num" id="kVypl">–</div><div class="note" id="kVyplNote"></div></div>
+      <div class="kpi"><div class="lbl">Průměr týmu</div><div class="num" id="kPrum">–</div><div class="note" id="kPrumNote"></div></div>
+      <div class="kpi" id="kFlagBox"><div class="lbl">Náročný týden</div><div class="num" id="kFlag">–</div><div class="note">hráčů s nízkým průměrem</div></div>
+      <div class="kpi"><div class="lbl">Zátěž týdne</div><div class="num" id="kLoad">–</div><div class="note">průměr, 1 lehký – 10 vyčerpávající</div></div>
+    </div>
+
+    <!-- NEVYPLNILI -->
+    <div class="card">
+      <h2>Kdo nevyplnil</h2>
+      <p class="sub" id="chybiSub"></p>
+      <div class="chips" id="chybi"></div>
+    </div>
+
+    <!-- TABULKA HRÁČŮ -->
+    <div class="card">
+      <h2>Hráči v tomhle týdnu</h2>
+      <p class="sub">Seřazeno od nejhoršího průměru. Trend ukazuje posledních 6 týdnů.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Hráč</th>
+            <th class="num">Průměr</th>
+            <th>Stav</th>
+            <th>Trend</th>
+            <th>Nejslabší</th>
+            <th class="num">Zátěž</th>
+            <th class="num">Čas</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="legenda" id="legenda"></p>
+    </div>
+
+    <!-- GRAF -->
+    <div class="card">
+      <h2>Průměr týmu v čase</h2>
+      <p class="sub" id="grafSub">Vyšší je lepší. Počítá se jen z vyplněných check-inů.</p>
+      <div class="chart" id="chartBox">
+        <svg id="chart" viewBox="0 0 720 240" role="img" aria-labelledby="chartTitle"><title id="chartTitle">Průměr týmu po týdnech</title></svg>
+        <div class="tip" id="tip"></div>
+      </div>
+    </div>
+
+    <!-- VZKAZY -->
+    <div class="card">
+      <h2>Vzkazy a měsíční ohlédnutí</h2>
+      <p class="sub">Od nejnovějších. Tohle se nikde jinde nezobrazuje — projdi to.</p>
+      <div id="vzkazy"></div>
+    </div>
+
+    <!-- KVALITA -->
+    <div class="card">
+      <h2>Kvalita vyplnění</h2>
+      <p class="sub">Komu to nesedí — buď to proklikal, nebo dal všude stejné číslo.</p>
+      <div id="kvalita"></div>
+    </div>
+
+    <div class="back"><a href="./">‹ Zpět na rozcestník</a></div>
+  </div>
+</div>
+
+<script>
+/* ===== Konfigurace ===== */
+const TAPING_URL = 'https://script.google.com/macros/s/AKfycbz0gTQV2z95fIoUCPHpqd757gMr5FvVdjsm4CENGLZu50CYotqyCaBclMS8baISDnjL/exec';
+const ROSTER_URL = 'https://script.google.com/macros/s/AKfycbyCBswrAp8EnUkB3csHd47Et6g5WXf3H3xco51yxb_7yL5zgsIRLxEHJya7Th22a3pp/exec';
+const ROSTER_CLUB = 'CAFC';
+const PIN = 'cafc2026';
+const CREST = 'https://awik23.github.io/idp-cafc/favicon.png';
+
+/* Položky check-inu. dir:"neg" = vyšší číslo je horší, přepočítává se na 11-v.
+   scored:false se nepočítá do průměru (zátěž je orientační, ne hodnotící). */
+const ITEMS = [
+  {id:"unava",    dir:"neg", lab:"Únava"},
+  {id:"spanek",   dir:"pos", lab:"Spánek"},
+  {id:"bolest",   dir:"neg", lab:"Bolest svalů"},
+  {id:"stres",    dir:"neg", lab:"Stres"},
+  {id:"treninky", dir:"pos", lab:"Tréninky"},
+  {id:"hlava",    dir:"pos", lab:"Soustředěnost"},
+  {id:"sebeduvera",dir:"pos",lab:"Sebedůvěra"},
+  {id:"chut",     dir:"pos", lab:"Chuť do fotbalu"},
+  {id:"tym",      dir:"pos", lab:"Vztahy v týmu"},
+  {id:"offload",  dir:"neg", lab:"Zátěž mimo fotbal"},
+  {id:"load",     dir:"neg", lab:"Náročnost týdne", scored:false}
+];
+const REFLEXE = [
+  ["r_move","Co šlo nejlíp a co brzdilo"],
+  ["r_one","Na čem chce zamakat"],
+  ["r_goal","Blíž svému cíli"]
+];
+
+let ROWS = [], ROSTER = [], TYDNY = [];
+
+/* ===== Pomocné ===== */
+function num(x){ const n = parseFloat(String(x).replace(',','.')); return isFinite(n) ? n : null; }
+function well(item, v){ return item.dir === 'neg' ? (11 - v) : v; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function show(id){ ['gate','loading','app'].forEach(x => document.getElementById(x).hidden = (x !== id)); }
+
+/* Období: 2026-W40 → „týden 40 / 2026", 2026-M10 → „říjen 2026" */
+const MESICE = ['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
+function obdobiLabel(o){
+  const s = String(o||'');
+  let m = s.match(/^(\d{4})-W(\d{1,2})$/);
+  if (m) return 'týden ' + Number(m[2]) + ' / ' + m[1];
+  m = s.match(/^(\d{4})-M(\d{1,2})$/);
+  if (m) return MESICE[Number(m[2]) - 1] + ' ' + m[1];
+  return s;
+}
+function obdobiKratce(o){
+  const m = String(o||'').match(/^(\d{4})-W(\d{1,2})$/);
+  return m ? ('t' + Number(m[2])) : obdobiLabel(o);
+}
+
+/* ===== JSONP ===== */
+function jsonp(url, cb, ms){
+  ms = ms || 25000;
+  const fn = '__cb' + Date.now() + Math.floor(Math.random() * 10000);
+  const s = document.createElement('script');
+  let done = false;
+  const konec = r => { if (done) return; done = true; clearTimeout(t); try{ delete window[fn]; }catch(e){} try{ s.remove(); }catch(e){} cb(r); };
+  const t = setTimeout(() => konec(null), ms);
+  window[fn] = r => konec(r);
+  s.onerror = () => konec(null);
+  s.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + fn + '&t=' + Date.now();
+  document.body.appendChild(s);
+}
+
+/* ===== Načtení ===== */
+function nacti(){
+  show('loading');
+  document.getElementById('retryWrap').hidden = true;
+  const lm = document.getElementById('loadMsg');
+  lm.className = 'msg'; lm.textContent = 'Načítám data…';
+  let hotovo = 0, chyba = false;
+  const dost = () => { if (++hotovo === 2) { if (chyba && !ROWS.length) selhalo(); else { postav(); show('app'); } } };
+  jsonp(TAPING_URL + '?action=data', r => {
+    if (r && r.ok && Array.isArray(r.rows)) ROWS = r.rows; else chyba = true;
+    dost();
+  });
+  jsonp(ROSTER_URL + '?action=taping&club=' + encodeURIComponent(ROSTER_CLUB), r => {
+    if (r && r.ok && Array.isArray(r.players)) ROSTER = r.players; else chyba = true;
+    dost();
+  });
+}
+function selhalo(){
+  const lm = document.getElementById('loadMsg');
+  lm.textContent = 'Data se nepodařilo načíst. Zkontroluj připojení.';
+  lm.className = 'msg err';
+  document.getElementById('retryWrap').hidden = false;
+}
+
+/* ===== Sestavení ovládání ===== */
+function postav(){
+  const tymy = [...new Set(ROSTER.map(p => p.kategorie).filter(Boolean))].sort();
+  const sel = document.getElementById('fTym');
+  sel.innerHTML = tymy.map(t => '<option>' + esc(t) + '</option>').join('');
+  if (!tymy.length) sel.innerHTML = '<option>U15</option>';
+  sel.onchange = prekresli;
+  document.getElementById('fTyden').onchange = prekresli;
+  document.getElementById('refreshBtn').onclick = nacti;
+  prekresliTydny();
+  prekresli();
+}
+function prekresliTydny(){
+  const tym = document.getElementById('fTym').value;
+  TYDNY = [...new Set(ROWS.filter(r => r.typ === 'tyden' && (!tym || r.kategorie === tym)).map(r => r.obdobi))]
+            .filter(Boolean).sort();
+  const sel = document.getElementById('fTyden');
+  sel.innerHTML = TYDNY.length
+    ? TYDNY.slice().reverse().map(o => '<option value="' + esc(o) + '">' + esc(obdobiLabel(o)) + '</option>').join('')
+    : '<option value="">— zatím žádná data —</option>';
+}
+
+/* Poslední vyplnění každého hráče za dané období (duplicity: platí to poslední) */
+function posledniZaObdobi(tym, obdobi){
+  const m = {};
+  ROWS.forEach(r => {
+    if (r.typ !== 'tyden' || r.obdobi !== obdobi) return;
+    if (tym && r.kategorie !== tym) return;
+    const id = String(r.facr_id);
+    const por = num(r.poradi) || 0;
+    const cur = m[id];
+    if (!cur) { m[id] = r; return; }
+    const curPor = num(cur.poradi) || 0;
+    if (por > curPor) { m[id] = r; return; }
+    if (por === curPor && String(r.timestamp) >= String(cur.timestamp)) m[id] = r;
+  });
+  return m;
+}
+
+function skore(r){
+  const p = num(r.prumer);
+  if (p !== null) return p;
+  const vals = ITEMS.filter(i => i.scored !== false)
+                    .map(i => ({ i, v: num(r[i.id]) }))
+                    .filter(x => x.v !== null)
+                    .map(x => well(x.i, x.v));
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+}
+function stav(p){
+  if (p === null) return { t: 'Nevyplnil', c: 'b-none' };
+  if (p <= 4) return { t: 'Náročný týden', c: 'b-crit' };
+  if (p <= 6) return { t: 'Slabší týden', c: 'b-warn' };
+  return { t: 'Dobrý týden', c: 'b-good' };
+}
+function nejslabsi(r){
+  return ITEMS.filter(i => i.scored !== false)
+    .map(i => ({ lab: i.lab, w: (num(r[i.id]) === null ? null : well(i, num(r[i.id]))) }))
+    .filter(x => x.w !== null && x.w <= 4)
+    .sort((a, b) => a.w - b.w)
+    .slice(0, 3)
+    .map(x => x.lab.toLowerCase())
+    .join(', ');
+}
+
+/* ===== Hlavní vykreslení ===== */
+function prekresli(){
+  prekresliTydny();
+  const tym = document.getElementById('fTym').value;
+  const obdobi = document.getElementById('fTyden').value;
+  const soupiska = ROSTER.filter(p => !tym || p.kategorie === tym);
+  const vypl = posledniZaObdobi(tym, obdobi);
+
+  /* --- KPI --- */
+  const pocetVypl = Object.keys(vypl).length;
+  const celkem = soupiska.length;
+  document.getElementById('kVypl').textContent = celkem ? (pocetVypl + '/' + celkem) : String(pocetVypl);
+  document.getElementById('kVyplNote').textContent = celkem
+    ? (Math.round(pocetVypl / celkem * 100) + ' % soupisky')
+    : 'soupiska se nenačetla';
+
+  const skoreList = Object.values(vypl).map(skore).filter(x => x !== null);
+  const prumer = skoreList.length ? skoreList.reduce((a, b) => a + b, 0) / skoreList.length : null;
+  document.getElementById('kPrum').textContent = prumer === null ? '–' : prumer.toFixed(1);
+  document.getElementById('kPrumNote').textContent = prumer === null ? 'zatím nic' : 'z 10, vyšší je lepší';
+
+  const kritickych = Object.values(vypl).filter(r => { const p = skore(r); return p !== null && p <= 4; }).length;
+  document.getElementById('kFlag').textContent = String(kritickych);
+  document.getElementById('kFlagBox').className = 'kpi' + (kritickych ? ' alarm' : '');
+
+  const loady = Object.values(vypl).map(r => num(r.load)).filter(x => x !== null);
+  document.getElementById('kLoad').textContent = loady.length
+    ? (loady.reduce((a, b) => a + b, 0) / loady.length).toFixed(1) : '–';
+
+  /* --- Nevyplnili --- */
+  const chybi = soupiska.filter(p => !vypl[String(p.facr_id)]);
+  const box = document.getElementById('chybi');
+  document.getElementById('chybiSub').textContent =
+    !obdobi ? 'Zatím nejsou žádná data.'
+    : chybi.length ? (chybi.length + ' z ' + celkem + ' — ' + obdobiLabel(obdobi))
+    : 'Nikdo. Vyplnila celá soupiska.';
+  box.innerHTML = chibiHtml(chybi);
+
+  /* --- Tabulka --- */
+  const radky = soupiska.map(p => {
+    const r = vypl[String(p.facr_id)];
+    return { p, r, s: r ? skore(r) : null };
+  }).sort((a, b) => {
+    if (a.s === null && b.s === null) return (a.p.prijmeni || '').localeCompare(b.p.prijmeni || '', 'cs');
+    if (a.s === null) return 1;
+    if (b.s === null) return -1;
+    return a.s - b.s;
+  });
+  document.getElementById('tbody').innerHTML = radky.map(x => {
+    const st = stav(x.s);
+    const r = x.r;
+    const sek = r ? num(r.sekundy) : null;
+    const por = r ? (num(r.poradi) || 0) : 0;
+    return '<tr>' +
+      '<td><span class="who">' + esc(x.p.prijmeni) + ' ' + esc(x.p.jmeno) + '</span>' +
+        (por > 1 ? ' <span class="slabe">(' + por + '× )</span>' : '') + '</td>' +
+      '<td class="num"><span class="big">' + (x.s === null ? '–' : x.s.toFixed(1)) + '</span></td>' +
+      '<td><span class="badge ' + st.c + '"><span class="dot"></span>' + st.t + '</span></td>' +
+      '<td>' + sparkline(String(x.p.facr_id), tym) + '</td>' +
+      '<td class="slabe">' + (r ? esc(nejslabsi(r) || '—') : '—') + '</td>' +
+      '<td class="num">' + (r && num(r.load) !== null ? num(r.load) : '–') + '</td>' +
+      '<td class="num slabe">' + (sek === null ? '–' : (sek < 60 ? sek + ' s' : Math.round(sek / 60) + ' min')) + '</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('legenda').textContent =
+    'Průměr je z otázek o pohodě a fotbalu; náročnost týdne se do něj nepočítá. ' +
+    'Pod 4 = náročný týden, 4–6 = slabší. „(2×)" znamená, že hráč období vyplnil víckrát — bere se poslední.';
+
+  /* --- Graf --- */
+  graf(tym);
+
+  /* --- Vzkazy a kvalita --- */
+  vzkazy(tym);
+  kvalita(tym, obdobi);
+}
+
+function chibiHtml(chybi){
+  if (!chybi.length) return '<span class="chip ok">Kompletní</span>';
+  return chybi.map(p => '<span class="chip">' + esc(p.prijmeni) + ' ' + esc(p.jmeno) + '</span>').join('');
+}
+
+/* ===== Sparkline — posledních 6 týdnů jednoho hráče ===== */
+function sparkline(facrId, tym){
+  const body = TYDNY.slice(-6).map(o => {
+    const m = posledniZaObdobi(tym, o);
+    const r = m[facrId];
+    return r ? skore(r) : null;
+  });
+  const maji = body.filter(x => x !== null);
+  if (maji.length < 2) return '<span class="slabe">—</span>';
+  const W = 86, H = 24, pad = 3;
+  const xs = i => pad + (W - 2 * pad) * (body.length === 1 ? 0.5 : i / (body.length - 1));
+  const ys = v => H - pad - (H - 2 * pad) * ((v - 1) / 9);
+  let d = '', zvednuto = true;
+  body.forEach((v, i) => {
+    if (v === null) { zvednuto = true; return; }
+    d += (zvednuto ? 'M' : 'L') + xs(i).toFixed(1) + ' ' + ys(v).toFixed(1) + ' ';
+    zvednuto = false;
+  });
+  const posledniI = body.map((v, i) => v === null ? -1 : i).filter(i => i >= 0).pop();
+  return '<svg class="spark" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' +
+    '<path d="' + d.trim() + '"/>' +
+    '<circle cx="' + xs(posledniI).toFixed(1) + '" cy="' + ys(body[posledniI]).toFixed(1) + '" r="2.6"/>' +
+  '</svg>';
+}
+
+/* ===== Graf průměru týmu (jedna řada → bez legendy, název ji pojmenovává) ===== */
+function graf(tym){
+  const svg = document.getElementById('chart');
+  const tip = document.getElementById('tip');
+  const data = TYDNY.map(o => {
+    const m = posledniZaObdobi(tym, o);
+    const s = Object.values(m).map(skore).filter(x => x !== null);
+    return { o, v: s.length ? s.reduce((a, b) => a + b, 0) / s.length : null, n: s.length };
+  }).filter(d => d.v !== null);
+
+  document.getElementById('grafSub').textContent = data.length < 2
+    ? 'Na graf je potřeba aspoň dva týdny dat. Zatím jich je ' + data.length + '.'
+    : 'Vyšší je lepší. Počítá se jen z vyplněných check-inů.';
+
+  if (data.length < 2) { svg.innerHTML = '<title>Průměr týmu po týdnech</title>'; return; }
+
+  const W = 720, H = 240, L = 34, R = 10, T = 14, B = 30;
+  const xs = i => L + (W - L - R) * (data.length === 1 ? 0.5 : i / (data.length - 1));
+  const ys = v => T + (H - T - B) * (1 - (v - 1) / 9);
+
+  let g = '<title>Průměr týmu po týdnech</title>';
+  [2, 4, 6, 8, 10].forEach(v => {
+    g += '<line class="gridline" x1="' + L + '" y1="' + ys(v).toFixed(1) + '" x2="' + (W - R) + '" y2="' + ys(v).toFixed(1) + '"/>';
+    g += '<text class="axis-txt" x="' + (L - 8) + '" y="' + (ys(v) + 4).toFixed(1) + '" text-anchor="end">' + v + '</text>';
+  });
+  const krok = Math.ceil(data.length / 12);
+  data.forEach((d, i) => {
+    if (i % krok === 0 || i === data.length - 1) {
+      g += '<text class="axis-txt" x="' + xs(i).toFixed(1) + '" y="' + (H - B + 18) + '" text-anchor="middle">' + esc(obdobiKratce(d.o)) + '</text>';
+    }
+  });
+  g += '<path class="line" d="' + data.map((d, i) => (i ? 'L' : 'M') + xs(i).toFixed(1) + ' ' + ys(d.v).toFixed(1)).join(' ') + '"/>';
+  data.forEach((d, i) => {
+    g += '<circle class="pt" cx="' + xs(i).toFixed(1) + '" cy="' + ys(d.v).toFixed(1) + '" r="4.5"/>';
+    g += '<rect class="hit" x="' + (xs(i) - 18).toFixed(1) + '" y="' + T + '" width="36" height="' + (H - T - B) + '" ' +
+         'data-i="' + i + '" tabindex="0" role="button" aria-label="' + esc(obdobiLabel(d.o)) + ': ' + d.v.toFixed(1) + '"/>';
+  });
+  svg.innerHTML = g;
+
+  const box = document.getElementById('chartBox');
+  svg.querySelectorAll('.hit').forEach(el => {
+    const ukaz = () => {
+      const i = Number(el.dataset.i), d = data[i];
+      tip.innerHTML = '<strong>' + esc(obdobiLabel(d.o)) + '</strong><br>průměr ' + d.v.toFixed(1) + ' · ' + d.n + ' vyplnění';
+      const r = box.getBoundingClientRect();
+      tip.style.left = (xs(i) / W * r.width) + 'px';
+      tip.style.top = (ys(d.v) / H * r.height) + 'px';
+      tip.classList.add('on');
+    };
+    const skryj = () => tip.classList.remove('on');
+    el.addEventListener('mouseenter', ukaz);
+    el.addEventListener('focus', ukaz);
+    el.addEventListener('mouseleave', skryj);
+    el.addEventListener('blur', skryj);
+  });
+}
+
+/* ===== Vzkazy a ohlédnutí ===== */
+function vzkazy(tym){
+  const out = [];
+  ROWS.forEach(r => {
+    if (tym && r.kategorie !== tym) return;
+    const texty = [];
+    if (String(r.coachMsg || '').trim()) texty.push(['Vzkaz trenérům', r.coachMsg]);
+    REFLEXE.forEach(([k, q]) => { if (String(r[k] || '').trim()) texty.push([q, r[k]]); });
+    if (!texty.length) return;
+    out.push({ r, texty });
+  });
+  out.sort((a, b) => String(b.r.timestamp).localeCompare(String(a.r.timestamp)));
+  const el = document.getElementById('vzkazy');
+  if (!out.length) { el.innerHTML = '<p class="prazdno">Zatím nic. Vzkazy se objeví, jakmile někdo něco napíše.</p>'; return; }
+  el.innerHTML = out.map(x =>
+    '<div class="vzkaz">' +
+      '<div><span class="kdo">' + esc(x.r.prijmeni) + ' ' + esc(x.r.jmeno) + '</span>' +
+      '<span class="kdy">' + esc(obdobiLabel(x.r.obdobi)) + ' · ' + esc(String(x.r.timestamp).slice(0, 10)) + '</span></div>' +
+      x.texty.map(([q, t]) => '<div class="otazka">' + esc(q) + '</div><div class="co">' + esc(t) + '</div>').join('') +
+    '</div>'
+  ).join('');
+}
+
+/* ===== Kvalita vyplnění ===== */
+function kvalita(tym, obdobi){
+  const m = posledniZaObdobi(tym, obdobi);
+  const podezrele = Object.values(m).map(r => {
+    const duvody = [];
+    if (String(r.kvalita) === 'jednotvárné') duvody.push('všude skoro stejné číslo');
+    const s = num(r.sekundy);
+    if (s !== null && s < 20) duvody.push('vyplněno za ' + s + ' s');
+    return duvody.length ? { r, duvody } : null;
+  }).filter(Boolean);
+  const el = document.getElementById('kvalita');
+  if (!podezrele.length) { el.innerHTML = '<p class="prazdno">Nic podezřelého.</p>'; return; }
+  el.innerHTML = '<div class="chips">' + podezrele.map(x =>
+    '<span class="chip">' + esc(x.r.prijmeni) + ' ' + esc(x.r.jmeno) + ' — ' + esc(x.duvody.join(', ')) + '</span>'
+  ).join('') + '</div>';
+}
+
+/* ===== Brána ===== */
+function vstup(){
+  const v = document.getElementById('pin').value.trim();
+  const m = document.getElementById('gateMsg');
+  if (v !== PIN) { m.textContent = 'Špatný PIN.'; m.className = 'msg err'; return; }
+  m.textContent = ''; m.className = 'msg';
+  try { sessionStorage.setItem('checkin_ok', '1'); } catch (e) {}
+  nacti();
+}
+document.getElementById('gateBtn').onclick = vstup;
+document.getElementById('pin').addEventListener('keydown', e => { if (e.key === 'Enter') vstup(); });
+document.getElementById('retryBtn').onclick = nacti;
+try { document.getElementById('crest').src = CREST; } catch (e) {}
+try { if (sessionStorage.getItem('checkin_ok') === '1') nacti(); } catch (e) {}
+</script>
+</body>
+</html>

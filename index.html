@@ -1031,7 +1031,7 @@ function pOpenCheck(){const rovs=[['Fotbal','fotbal'],['Hlava','hlava'],['Tým',
  else {_t.textContent='Vše vyplněno! 🎉';_l.textContent='Máš vyplněno úplně všechno. Můžeš odeslat.';}
  document.getElementById('checkModal').classList.add('show')}
 function closeCheck(){document.getElementById('checkModal').classList.remove('show')}
-function submitPlayer(){closeCheck();pDoGo(pCur+1);try{saveSubmission(collectPlayerPayload());}catch(e){}clearDraft();}
+function submitPlayer(){closeCheck();pDoGo(pCur+1);try{odesliAOver(collectPlayerPayload());}catch(e){stavChyba(null);}}
 function pCatAvg(cat){const items=FOTBAL[cat].items;let s=0,n=0;items.forEach(name=>{const k='f:'+name;if(k in pScaleVal){s+=pScaleVal[k];n++}});return n===0?null:Math.round(s/n*10)}
 const CAT_FULL={'FYZ':'Fyzická stránka','TECH':'Technika','MYSL':'Herní myšlení','CHAR':'Povaha a přístup'};
 function interpret(v){if(v===null)return{tag:'nevyplněno',cls:'na',txt:'Tuhle část jsi nevyplnil — klidně se vrať a dodělej ji.'};
@@ -1156,7 +1156,7 @@ function cSubmit(){
  const p=PLAYERS[+document.getElementById('cPlayer').value];
  document.getElementById('cDonePlayer').textContent=p?playerLabel(p):'hráče';
  document.getElementById('cDonePeriod').innerHTML=currentPeriod().label+'<small>Období hodnocení</small>';
- try{saveSubmission(collectCoachPayload());}catch(e){}clearDraft();
+ try{odesliAOver(collectCoachPayload());}catch(e){stavChyba(null);}
  // (v prototypu jen zobrazíme potvrzení; data se později pošlou do Google Sheets)
  document.getElementById(C_SCREENS[cCur]).classList.remove('active');cCur=C_SCREENS.length-1;
  document.getElementById(C_SCREENS[cCur]).classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
@@ -1236,6 +1236,7 @@ function collectPlayerPayload(){
   return {
     type:'hrac',
     assessmentId: makeAssessmentId(p, per, 'H'),
+    facr_id: p.facr_id || '',
     playerName: p.guest? ((document.getElementById('pGuestName').value||'').trim()) : (p.last? (p.last+' '+p.first): ''),
     playerYear: p.year||'',
     filledBy: p.guest? ((document.getElementById('pGuestName').value||'').trim()) : (p.last? (p.last+' '+p.first): ''),
@@ -1257,6 +1258,7 @@ function collectCoachPayload(){
   return {
     type:'trener',
     assessmentId: makeAssessmentId(p, per, 'T'),
+    facr_id: p.facr_id || '',
     playerName: p.guest? ((document.getElementById('cGuestName').value||'').trim()) : (p.last? (p.last+' '+p.first): ''),
     playerYear: p.year||'',
     filledBy: document.getElementById('cCoach').value||'',
@@ -1282,14 +1284,95 @@ function makeAssessmentId(p, per, tag){
   const base=(p && p.last? (p.last+p.first+(p.year||'')):'X').replace(/\s+/g,'');
   return base+'-'+per.season.replace('/','')+'-'+per.name+'-'+tag;
 }
+// ---- Stavový pruh ukládání (nikdy netvrdíme „odesláno", dokud to není v databázi) ----
+function stavPruh(){
+  let el = document.getElementById('saveStatus');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'saveStatus';
+    el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:9999;'
+      + 'max-width:92vw;padding:12px 16px;border-radius:12px;font:600 14px/1.35 system-ui,sans-serif;'
+      + 'box-shadow:0 6px 24px rgba(0,0,0,.18);display:none;text-align:center';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+function stavUkladam(){
+  const el = stavPruh();
+  el.style.background = '#1f2937'; el.style.color = '#fff';
+  el.textContent = 'Ukládám odpověď…';
+  el.style.display = 'block';
+}
+function stavOK(){
+  const el = stavPruh();
+  el.style.background = '#0f7b3e'; el.style.color = '#fff';
+  el.textContent = 'Uloženo do databáze ✓';
+  el.style.display = 'block';
+  setTimeout(function(){ el.style.display = 'none'; }, 4000);
+}
+function stavChyba(znovu){
+  const el = stavPruh();
+  el.style.background = '#b3261e'; el.style.color = '#fff';
+  el.innerHTML = 'NEULOŽENO. Zkontroluj připojení. Tvoje odpovědi jsou uložené v telefonu — '
+    + 'nezavírej stránku. <button id="saveRetry" style="margin-left:8px;padding:6px 12px;border:0;'
+    + 'border-radius:8px;font:600 13px system-ui;cursor:pointer">Zkusit znovu</button>';
+  el.style.display = 'block';
+  const b = document.getElementById('saveRetry');
+  if(b) b.onclick = function(){ znovu && znovu(); };
+}
+
+// Odešle payload a teprve po POTVRZENÍ z databáze smaže rozepsaný koncept.
+function odesliAOver(payload){
+  stavUkladam();
+  saveSubmission(payload, function(ok){
+    if(ok){ clearDraft(); stavOK(); }
+    else { stavChyba(function(){ odesliAOver(payload); }); }
+  });
+}
+
+// Uložení odpovědi + OVĚŘENÍ, že řádek opravdu přibyl v databázi.
+// Nikdy nehlásíme úspěch jen proto, že fetch nespadl.
+function pocetOdpovedi(id, cb){
+  if(!id){ cb(null); return; }
+  const nazev = 'idpCnt_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
+  let hotovo = false;
+  window[nazev] = function(res){
+    hotovo = true;
+    cb(res && res.ok && typeof res.pocet === 'number' ? res.pocet : null);
+    try{ delete window[nazev]; }catch(e){}
+    const el = document.getElementById(nazev); if(el) el.remove();
+  };
+  const s = document.createElement('script');
+  s.id = nazev;
+  s.src = API_URL + '?action=existuje&id=' + encodeURIComponent(id) + '&callback=' + nazev + '&t=' + Date.now();
+  s.onerror = function(){ if(!hotovo){ hotovo = true; cb(null); } };
+  document.body.appendChild(s);
+  setTimeout(function(){ if(!hotovo){ hotovo = true; cb(null); } }, 10000);
+}
+
 function saveSubmission(payload, onDone){
   if(!API_URL || API_URL.indexOf('http')!==0){ onDone&&onDone(true); return; }
-  fetch(API_URL, {
-    method:'POST',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify(payload)
-  }).then(r=>r.json().catch(()=>({ok:true}))).then(res=>{ onDone&&onDone(true); })
-    .catch(err=>{ onDone&&onDone(false); });
+  const idH = payload.assessmentId || '';
+  pocetOdpovedi(idH, function(pred){
+    const overit = function(){
+      setTimeout(function(){
+        pocetOdpovedi(idH, function(po){
+          if(pred === null || po === null){ onDone&&onDone(false); return; }
+          onDone&&onDone(po > pred);
+        });
+      }, 1500);
+    };
+    fetch(API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload)
+    }).then(function(r){ return r.json().catch(function(){ return null; }); })
+      .then(function(res){
+        if(res && res.ok === true && res.saved === true){ onDone&&onDone(true); return; }
+        overit();
+      })
+      .catch(function(){ overit(); });
+  });
 }
 
 

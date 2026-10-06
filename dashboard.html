@@ -332,7 +332,11 @@ function buildTeamPlayers(team){
   const roster=DB.players.filter(p=>p.team===team);
   return roster.map(p=>{
     const full=(p.last+' '+p.first).trim();
-    const nameMatch=r=>(r.player===full || r.player===(p.first+' '+p.last));
+    // Párujeme PRIMÁRNĚ přes facr_id (stabilní), jméno je jen záloha pro staré řádky.
+    const nameMatch=r=>(
+      (r.facr_id && p.facr_id && String(r.facr_id)===String(p.facr_id)) ||
+      (!r.facr_id && (r.player===full || r.player===(p.first+' '+p.last)))
+    );
     // Párujeme jen v rámci AKTUÁLNÍHO období (season+period), ať se nemíchají různá období
     const periodMatch=r=>(!CUR_SEASON || r.season===CUR_SEASON) && (!CUR_PERIOD || r.period===CUR_PERIOD);
     // sebehodnocení: poslední vyplnění hráče v tomto období
@@ -350,7 +354,7 @@ function buildTeamPlayers(team){
       verbal:(r.data&&r.data.verbal)||''
     }));
     return {
-      first:p.first, last:p.last, nick:p.nick, year:p.year, pos:p.pos, team:p.team,
+      facr_id:p.facr_id||'', first:p.first, last:p.last, nick:p.nick, year:p.year, pos:p.pos, team:p.team,
       self:(self&&self.data&&self.data.answers)||null,
       open:(self&&self.data&&self.data.open)||null,
       fun:(self&&self.data&&self.data.fun)||null,
@@ -367,9 +371,10 @@ function buildTeamPlayers(team){
 function _escO(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function orphanResponses(){
   const names=new Set();
-  DB.players.forEach(p=>{names.add((p.last+' '+p.first).trim());names.add((p.first+' '+p.last).trim());});
+  const ids=new Set();
+  DB.players.forEach(p=>{names.add((p.last+' '+p.first).trim());names.add((p.first+' '+p.last).trim());if(p.facr_id)ids.add(String(p.facr_id));});
   const cur=DB.responses.filter(r=>(!CUR_SEASON||r.season===CUR_SEASON)&&(!CUR_PERIOD||r.period===CUR_PERIOD));
-  return cur.filter(r=>r.player && !names.has(String(r.player).trim()));
+  return cur.filter(r=>r.player && !(r.facr_id && ids.has(String(r.facr_id))) && !names.has(String(r.player).trim()));
 }
 function orphanHTML(){
   const o=orphanResponses(); if(!o.length) return '';
