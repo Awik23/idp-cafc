@@ -456,8 +456,17 @@ function overall(obj){const vs=Object.keys(FOTBAL).map(c=>catAvg(obj,c)).filter(
 function allSkillKeys(){return Object.values(FOTBAL).flat().map(n=>'f:'+n);}
 function coachAvgAns(p){if(!p.coaches.length)return null;const out={};allSkillKeys().concat(['h:0','h:1','h:2','t:0','t:1']).forEach(k=>{let s=0,n=0;p.coaches.forEach(c=>{if(k in c.ans){s+=c.ans[k];n++}});if(n)out[k]=s/n;});return out;}
 
+// Hráč bez pozice (nebo s pozicí mimo POS_GROUPS) by se do žádné skupiny
+// nevešel a z přehledu by TIŠE zmizel. Proto skupina „Bez pozice" na konci —
+// radši ať je vidět, že někomu chybí údaj, než aby chyběl celý hráč.
+function POS_SKUPINY_(){
+  const zname=[];POS_GROUPS.forEach(g=>g.codes.forEach(c=>zname.push(c)));
+  const zbytek=players().filter(p=>!zname.includes(p.pos));
+  return zbytek.length ? POS_GROUPS.concat([{name:'Bez pozice',color:'#9aa0a6',codes:null}]) : POS_GROUPS;
+}
 function buildRoster(){const host=document.getElementById('rosterList');host.innerHTML='';const q=(document.getElementById('rsearch').value||'').toLowerCase().trim();
-  POS_GROUPS.forEach(g=>{let inGroup=players().filter(p=>g.codes.includes(p.pos));if(q)inGroup=inGroup.filter(p=>(p.last+' '+p.first).toLowerCase().includes(q));if(!inGroup.length)return;
+  const zname=[];POS_GROUPS.forEach(g=>g.codes&&g.codes.forEach(c=>zname.push(c)));
+  POS_SKUPINY_().forEach(g=>{let inGroup=players().filter(p=>g.codes?g.codes.includes(p.pos):!zname.includes(p.pos));if(q)inGroup=inGroup.filter(p=>(p.last+' '+p.first).toLowerCase().includes(q));if(!inGroup.length)return;
     inGroup.sort((a,b)=>((a.last||'')+' '+(a.first||'')).localeCompare(((b.last||'')+' '+(b.first||'')),'cs'));
     const gd=document.createElement('div');gd.className='pos-group';const gh=document.createElement('div');gh.className='gh';
     gh.innerHTML='<span class="band" style="background:'+g.color+'"></span>'+g.name+'<span class="cnt">'+inGroup.length+'</span><span class="caret">▼</span>';
