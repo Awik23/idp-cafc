@@ -38,6 +38,8 @@
   .topbar .label{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;text-transform:uppercase}
   .topbar .label span{color:var(--wine)}
   .topbar .sp{flex:1}
+  .tblink{font-size:12.5px;color:var(--muted);text-decoration:none;padding:5px 11px;border:1.5px solid var(--line);border-radius:999px;white-space:nowrap}
+  .tblink:hover{border-color:var(--wine);color:var(--wine);background:#fdf3f5}
   .backbtn{background:var(--white);border:1.5px solid var(--line);border-radius:999px;padding:6px 14px;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;font-weight:700;font-size:13px;letter-spacing:.03em;color:var(--wine);cursor:pointer;transition:all .15s}
   .backbtn:hover{background:var(--wine);color:#fff;border-color:var(--wine)}
   .navbtn{display:inline-flex;align-items:center;gap:6px;background:var(--white);border:1.5px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap;color:var(--muted);font-weight:600}
@@ -220,6 +222,7 @@
 <div class="wrap" id="wrap">
   <div class="topbar">
     <button class="backbtn" id="backBtn" onclick="goBack()" title="Zpět">← Zpět</button><img src="" class="crestimg"><div class="label">IDP <span>CAFC</span></div>
+    <a class="tblink" href="./checkin.html">Týdenní check-in ›</a><a class="tblink" href="./">Rozcestník</a>
     <div class="sp"></div>
     <div class="navbtn" id="clubChip" onclick="backToClubs()"><span class="nb-l">Klub</span><b id="clubName">ČAFC</b> ▾</div><div class="navbtn" id="teamChip" onclick="backToTeams()"><span class="nb-l">Tým</span><b id="teamName">U14</b> ▾</div><div class="navbtn pdwrap" id="periodPill" onclick="togglePeriodMenu(event)"><span class="nb-l">Období</span><b id="periodName">—</b> ▾<div class="pdmenu" id="periodMenu"></div></div>
   </div>
