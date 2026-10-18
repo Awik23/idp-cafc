@@ -231,7 +231,7 @@ const ITEMS=[
   {id:"chut",g:"fotbal",dir:"pos",cats:ALL,lab:"Chuť do fotbalu",help:"Jak moc ses tento týden těšil na fotbal?",lo:"Nechtělo se mi",hi:"Moc jsem se těšil"},
   {id:"tym",g:"fotbal",dir:"pos",cats:ALL,lab:"Vztahy v týmu",help:"Jak ti bylo tento týden v týmu, mezi klukama?",lo:"Cítil jsem se mimo",hi:"Bylo super"},
   {id:"load",g:"zatez",dir:"neg",scored:false,cats:["standard","profi","zaklad"],lab:"Náročnost týdne",help:"Jak fyzicky náročný byl pro tebe tento týden celkově?",lo:"Lehký",hi:"Vyčerpávající"},
-  {id:"offload",g:"zivot",dir:"neg",cats:ALL,lab:"Zátěž mimo fotbal",help:"Zatěžovalo tě tento týden něco mimo fotbal (škola, doma, osobní věci)?",lo:"Vůbec, klid",hi:"Hodně mě to táhlo dolů"},
+  {id:"offload",g:"zivot",dir:"neg",scored:false,cats:ALL,lab:"Zátěž mimo fotbal",help:"Zatěžovalo tě tento týden něco mimo fotbal (škola, doma, osobní věci)?",lo:"Vůbec, klid",hi:"Hodně mě to táhlo dolů"},
   {id:"src",g:"zivot",type:"tags",cats:ALL,q:"Když tě něco mimo fotbal zatěžovalo, čeho se to týkalo? Můžeš vybrat víc možností.",
      opts:["Škola / písemky","Doma","Zdraví / zranění","Kamarádi / vztahy","Něco jiného"],
      optsByCat:{profi:["Práce","Peníze","Doma / rodina","Zdraví","Vztahy","Něco jiného"]}},
@@ -417,12 +417,12 @@ function update(){
   const avg=w.reduce((a,b)=>a+b,0)/w.length;
   el.innerHTML=`${avg.toFixed(1)}<small> /10</small>`;
   document.getElementById("needle").style.left=Math.max(2,Math.min(98,avg*10))+"%";
-  const low=scored.filter(i=>state.values[i.id]!=null&&well(i,state.values[i.id])<=3);
-  const mid=scored.filter(i=>state.values[i.id]!=null&&well(i,state.values[i.id])>3&&well(i,state.values[i.id])<=5);
-  const nm=a=>a.map(i=>labelOf(i).toLowerCase()).join(", ");
-  if(low.length) setFlag("crit","Náročný týden",`Nejvíc tě trápí: ${nm(low)}.`);
-  else if(mid.length) setFlag("warn","Slabší týden",`Slabší místa: ${nm(mid)}.`);
-  else setFlag("good","Dobrý týden","Všechno v pohodě — jen tak dál.");
+  const slabsi=scored.filter(i=>state.values[i.id]!=null&&well(i,state.values[i.id])<=4)
+                     .sort((a,b)=>well(a,state.values[a.id])-well(b,state.values[b.id]));
+  const nm=a=>a.slice(0,3).map(i=>labelOf(i).toLowerCase()).join(", ");
+  if(avg<=4) setFlag("crit","Náročný týden",slabsi.length?`Nejvíc tě trápí: ${nm(slabsi)}.`:"Těžký týden.");
+  else if(avg<=6) setFlag("warn","Slabší týden",slabsi.length?`Slabší místa: ${nm(slabsi)}.`:"Pár věcí drhne, ale dá se.");
+  else setFlag("good","Dobrý týden",slabsi.length?`Celkově fajn, jen hlídej: ${nm(slabsi)}.`:"Všechno v pohodě — jen tak dál.");
 }
 function setProgress(f,t){ document.getElementById("progFill").style.width=(t?Math.round(f/t*100):0)+"%"; document.getElementById("progTxt").textContent=`${f} / ${t} vyplněno`; }
 function setFlag(l,t,note){ const c=document.getElementById("flagChip"); c.className="flagchip lv-"+l; document.getElementById("flagTxt").textContent=t; document.getElementById("coachNote").textContent=note; }

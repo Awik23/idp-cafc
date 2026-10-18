@@ -387,6 +387,7 @@
 
   <!-- ============ PLAYER FLOW ============ -->
   <div class="screen" id="pIntro">
+    <div style="margin:0 0 6px"><a href="#" onclick="backToHub();return false;" style="color:var(--muted,#6b6b70);text-decoration:none;font-size:14px">‹ Zpět na rozcestník</a></div>
     <div class="hero"><img class="crest" alt="CAFC logo">
       <div class="eyebrow">Než začneš</div><h1 class="display">Pár věcí,<br>než se do toho pustíš</h1></div>
     <div class="info-points">
@@ -964,6 +965,7 @@ function pBuildOpen(host,arr,prefix){const rov=prefix==='h'?'hlava':'tym';
 let pToastT;function pBump(t){document.getElementById('xpNum').textContent=xp;const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');clearTimeout(pToastT);pToastT=setTimeout(()=>el.classList.remove('show'),1100)}
 function toggleXpInfo(){document.getElementById('xpinfo').classList.toggle('show')}
 function goHome(){if(confirm('Vrátit se na úvod (výběr hráč / trenér)? Rozepsané odpovědi se ztratí.'))location.reload();}
+function backToHub(){var id=(typeof hubLoad==='function')&&hubLoad();if(id){hubShow('hubPick');}else{location.href='./';}}
 function toggleLegend(){const b=document.getElementById('legendBody'),c=document.getElementById('legendCaret');if(!b)return;const open=b.style.display!=='none';b.style.display=open?'none':'block';c.textContent=open?'rozbalit ▾':'sbalit ▲';}
 function pUpdateProg(){const pct=Math.round((pCur/(P_SCREENS.length-1))*100);
  document.getElementById('pProg').style.width=pct+'%';document.getElementById('pPct').textContent=pct+' %';document.getElementById('pLabel').textContent=P_LABELS[pCur]}
