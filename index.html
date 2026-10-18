@@ -352,6 +352,37 @@
     </div>
   </div>
 
+  <!-- ============ COACH HUB (po heslu) ============ -->
+  <div class="screen" id="cMenu">
+    <div class="role-wrap">
+      <img class="crest" alt="CAFC logo">
+      <div class="eyebrow">Trenér</div>
+      <h1 class="display">Co chceš<br>dělat?</h1>
+      <div class="role-cards">
+        <div class="role-card trener" onclick="cStart()">
+          <div class="ricon">📋</div>
+          <div class="rtx"><div class="rt">Hodnotit hráče do IDP</div><div class="rs">Velké hodnocení hráče · 1–2× za sezónu</div></div>
+          <div class="rarrow">›</div>
+        </div>
+        <div class="role-card hrac" onclick="location.href='checkin.html'">
+          <div class="ricon">📅</div>
+          <div class="rtx"><div class="rt">Týdenní check-in — přehled</div><div class="rs">Pohoda a forma hráčů po týdnech</div></div>
+          <div class="rarrow">›</div>
+        </div>
+        <div class="role-card hrac" onclick="location.href='dashboard.html'">
+          <div class="ricon">⚽</div>
+          <div class="rtx"><div class="rt">IDP dashboard</div><div class="rs">Přehled rozvojových plánů a hodnocení</div></div>
+          <div class="rarrow">›</div>
+        </div>
+        <div class="role-card" style="opacity:.5;cursor:default" title="Zatím není — přidáme, až budou měsíční data">
+          <div class="ricon">🗓️</div>
+          <div class="rtx"><div class="rt">Měsíční přehled <span style="font-size:12px">· brzy</span></div><div class="rs">Připravíme, až přibudou měsíční data</div></div>
+        </div>
+      </div>
+      <p class="hub-alt"><a href="#" id="hBackRoleCoach">‹ Změnit roli</a></p>
+    </div>
+  </div>
+
   <!-- ============ SHARED TOPBAR (player) ============ -->
   <div class="topbar" id="pTop">
     <div class="topbar-row">
@@ -830,11 +861,12 @@ function setCrests(){document.querySelectorAll('img').forEach(im=>{if(!im.getAtt
 function hideAll(){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   ['pTop','cTop','pNav','cNav'].forEach(id=>document.getElementById(id).style.display='none');}
 function chooseHrac(){hideAll();pStart();}
-function askPassword(){if(sessionStorage.getItem('coachAuthed')==='1'){hideAll();cStart();return;}document.getElementById('pwModal').classList.add('show');document.getElementById('pwInput').focus();}
+function askPassword(){if(sessionStorage.getItem('coachAuthed')==='1'){coachMenu();return;}document.getElementById('pwModal').classList.add('show');document.getElementById('pwInput').focus();}
 function closePw(){document.getElementById('pwModal').classList.remove('show');document.getElementById('pwInput').value='';document.getElementById('pwErr').textContent='';}
 function checkPassword(){const v=document.getElementById('pwInput').value.trim();
-  if(v===COACH_PASSWORD){sessionStorage.setItem('coachAuthed','1');closePw();hideAll();cStart();
-    if(PENDING_COACH_PW_DRAFT){const d=PENDING_COACH_PW_DRAFT;PENDING_COACH_PW_DRAFT=null;restoreCoachContent(d);PENDING_RESTORE_COACH=d;if(LISTS_STATE!=='loading')applyPendingIdentityRestore();cDoGo(Math.max(0,C_SCREENS.indexOf(d.screen)));}
+  if(v===COACH_PASSWORD){sessionStorage.setItem('coachAuthed','1');closePw();
+    if(PENDING_COACH_PW_DRAFT){hideAll();cStart();const d=PENDING_COACH_PW_DRAFT;PENDING_COACH_PW_DRAFT=null;restoreCoachContent(d);PENDING_RESTORE_COACH=d;if(LISTS_STATE!=='loading')applyPendingIdentityRestore();cDoGo(Math.max(0,C_SCREENS.indexOf(d.screen)));}
+    else{coachMenu();}
   }
   else{document.getElementById('pwErr').textContent='Špatné heslo, zkus to znovu.';}}
 
@@ -1607,6 +1639,8 @@ document.getElementById('cardIdp').onclick=hubGoIdp;
 document.getElementById('hNotMe').onclick=function(e){ e.preventDefault(); try{localStorage.removeItem(HUB_KEY);}catch(x){} hubShow('hubWho'); hubFetchRoster(); };
 function goPlayerHub(){ hubShow('hubWho'); hubFetchRoster(); }
 function showRole(){ try{sessionStorage.removeItem('coachAuthed');}catch(e){} hubShow('roleScreen'); }
+function coachMenu(){ hideAll(); var m=document.getElementById('cMenu'); if(m) m.classList.add('active'); }
+var _hbrc=document.getElementById('hBackRoleCoach'); if(_hbrc) _hbrc.onclick=function(e){ e.preventDefault(); showRole(); };
 var _hbr=document.getElementById('hBackRole'); if(_hbr) _hbr.onclick=function(e){ e.preventDefault(); showRole(); };
 var _hbr2=document.getElementById('hBackRole2'); if(_hbr2) _hbr2.onclick=function(e){ e.preventDefault(); showRole(); };
 
