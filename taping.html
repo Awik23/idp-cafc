@@ -103,6 +103,8 @@
   .chips{display:flex;flex-wrap:wrap;gap:7px}
   .chip{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:13px;color:var(--muted);background:var(--surface-2);border:1px solid var(--hair-strong);border-radius:99px;padding:7px 13px;cursor:pointer}
   .chip:hover{border-color:var(--brand)} .chip[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .tag-other{display:none;width:100%;margin-top:9px;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line,#e3e3e6);border-radius:10px;font:inherit;font-size:14px;resize:vertical;min-height:58px;background:var(--surface,#fff);color:inherit}
+  .tag-other:focus{outline:none;border-color:var(--brand)}
   .reflect textarea{width:100%;font-family:inherit;font-size:14.5px;color:var(--ink);background:var(--surface);border:1px solid var(--hair-strong);border-radius:10px;padding:10px 11px;resize:vertical;min-height:60px}
   .reflect textarea:focus-visible{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
   .reflect .r{margin:12px 0} .reflect label{display:block;font-weight:600;font-size:14.5px;margin-bottom:6px}
@@ -247,7 +249,7 @@ const REFLECT={
 
 /* ===== Stav ===== */
 let roster=[], profile=null, cat="zaklad", mode="tyden";
-const state={values:{},tags:[],reflect:{},coachMsg:""};
+const state={values:{},tags:[],reflect:{},coachMsg:"",tagOther:""};
 
 /* ===== Načtení soupisky (JSONP) ===== */
 function loadRoster(){
@@ -330,7 +332,7 @@ function buildSetup(){
   hSel.onchange=refresh; cons.onchange=refresh;
   start.onclick=function(){ const p=roster.find(x=>x.facr_id===hSel.value); if(!p)return;
     profile={facr_id:p.facr_id,prijmeni:p.prijmeni,jmeno:p.jmeno,klub:p.klub,kategorie:p.kategorie,consent:true};
-    saveProfile(profile); cat=levelFromKat(profile.kategorie); state.values={};state.tags=[];state.reflect={};state.coachMsg=""; enterApp(); };
+    saveProfile(profile); cat=levelFromKat(profile.kategorie); state.values={};state.tags=[];state.reflect={};state.coachMsg="";state.tagOther=""; enterApp(); };
 }
 
 function enterApp(){ show('app'); state.openTs=Date.now(); paintProfile(); try{document.getElementById('pweek').value=isoWeek(new Date());}catch(e){} render(); }
@@ -398,11 +400,18 @@ function renderMonthly(){
 function renderTags(i){ const wrap=document.createElement("div"); wrap.className="item tags";
   const q=document.createElement("p"); q.className="tags-q"; q.textContent=i.q; wrap.appendChild(q);
   const row=document.createElement("div"); row.className="chips";
+  const OTHER="Něco jiného";
+  const ta=document.createElement("textarea"); ta.className="tag-other"; ta.maxLength=140;
+  ta.placeholder="Napiš krátce, co se děje (nepovinné) – třeba doma je toho moc, škola, něco mě trápí…";
+  ta.value=state.tagOther||"";
+  ta.style.display=state.tags.includes(OTHER)?"block":"none";
+  ta.oninput=function(){ state.tagOther=ta.value; };
   ((i.optsByCat&&i.optsByCat[cat])||i.opts).forEach(opt=>{ const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=opt;
     b.setAttribute("aria-pressed",state.tags.includes(opt)?"true":"false");
-    b.onclick=function(){ const k=state.tags.indexOf(opt); if(k>=0)state.tags.splice(k,1); else state.tags.push(opt); b.setAttribute("aria-pressed",state.tags.includes(opt)?"true":"false"); };
+    b.onclick=function(){ const k=state.tags.indexOf(opt); if(k>=0)state.tags.splice(k,1); else state.tags.push(opt); b.setAttribute("aria-pressed",state.tags.includes(opt)?"true":"false");
+      if(opt===OTHER){ const on=state.tags.includes(OTHER); ta.style.display=on?"block":"none"; if(!on){ state.tagOther=""; ta.value=""; } else { ta.focus(); } } };
     row.appendChild(b); });
-  wrap.appendChild(row); return wrap;
+  wrap.appendChild(row); wrap.appendChild(ta); return wrap;
 }
 
 /* ===== Skóre ===== */
@@ -516,8 +525,8 @@ document.getElementById("submitBtn").onclick=function(){
   const payload={ facr_id:profile.facr_id,prijmeni:profile.prijmeni,jmeno:profile.jmeno,klub:profile.klub,kategorie:profile.kategorie,
     typ:monthly?"mesic":"tyden", tyden_iso:document.getElementById("pweek").value||"",
     obdobi:obdobiToken(),
-    prumer:monthly?"":avg, flag:monthly?"":flag, values:monthly?{}:state.values,
-    tagy:monthly?"":state.tags.join("; "),
+    prumer:monthly?"":(avg===""?"":Number(avg)), flag:monthly?"":flag, values:monthly?{}:state.values,
+    tagy:monthly?"":state.tags.map(function(t){return (t==="Něco jiného"&&state.tagOther.trim())?("Něco jiného — "+state.tagOther.trim()):t;}).join("; "),
     r_move:state.reflect.r_move||"", r_one:state.reflect.r_one||"", r_goal:state.reflect.r_goal||"", coachMsg:state.coachMsg||"",
     sekundy:Math.max(0,Math.round((Date.now()-(state.openTs||Date.now()))/1000)),
     kvalita:monthly?"":fillQuality(items) };
@@ -552,7 +561,7 @@ function fillQuality(items){
   return (Math.max.apply(null,raw)-Math.min.apply(null,raw))<=1 ? "jednotvárné" : "ok";
 }
 function finishOK(pocet){
-  state.values={};state.tags=[];state.reflect={};state.coachMsg="";
+  state.values={};state.tags=[];state.reflect={};state.coachMsg="";state.tagOther="";
   document.getElementById("submitBtn").disabled=false; setMsg("",false);
   const d=document.getElementById("doneMsg");
   if(d) d.textContent=(pocet&&pocet>1)

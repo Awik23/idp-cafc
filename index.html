@@ -288,7 +288,7 @@
 <div class="app">
 
   <!-- ============ HUB — kdo jsi + co vyplňuješ ============ -->
-  <div class="screen active" id="hubWho">
+  <div class="screen" id="hubWho">
     <div class="role-wrap">
       <img class="crest" alt="CAFC logo">
       <div class="eyebrow">Individuální plán rozvoje</div>
@@ -305,7 +305,7 @@
         <button class="btn btn-primary" id="hGo" type="button" disabled>Pokračovat</button>
         <p class="hub-msg" id="hMsg">Načítám soupisku…</p>
       </div>
-      <p class="hub-alt"><a href="#" id="hCoachLink">Jsem trenér — hodnocení do IDP</a><a href="./dashboard.html">Trenérské přehledy</a></p>
+      <p class="hub-alt"><a href="#" id="hBackRole">‹ Nejsem hráč — zpět na výběr</a></p>
     </div>
   </div>
 
@@ -326,7 +326,7 @@
           <div class="rarrow">›</div>
         </div>
       </div>
-      <p class="hub-alt"><a href="#" id="hNotMe">Nejsem to já — změnit hráče</a><a href="#" id="hCoachLink2">Jsem trenér — hodnocení do IDP</a><a href="./dashboard.html">Trenérské přehledy</a></p>
+      <p class="hub-alt"><a href="#" id="hNotMe">Nejsem to já — změnit hráče</a><a href="#" id="hBackRole2">‹ Změnit roli</a></p>
     </div>
   </div>
 
@@ -338,7 +338,7 @@
       <h1 class="display">Vítej!<br>Kdo jsi?</h1>
       <p>Vyber, jestli jsi hráč nebo trenér. Podle toho ti ukážeme správný formulář.</p>
       <div class="role-cards">
-        <div class="role-card hrac" onclick="chooseHrac()">
+        <div class="role-card hrac" onclick="goPlayerHub()">
           <div class="ricon">⚽</div>
           <div class="rtx"><div class="rt">Jsem hráč</div><div class="rs">Vyplním sebehodnocení</div></div>
           <div class="rarrow">›</div>
@@ -1605,13 +1605,15 @@ document.getElementById('cardTaping').onclick=function(){
 };
 document.getElementById('cardIdp').onclick=hubGoIdp;
 document.getElementById('hNotMe').onclick=function(e){ e.preventDefault(); try{localStorage.removeItem(HUB_KEY);}catch(x){} hubShow('hubWho'); hubFetchRoster(); };
-document.getElementById('hCoachLink').onclick=function(e){ e.preventDefault(); askPassword(); };
-document.getElementById('hCoachLink2').onclick=function(e){ e.preventDefault(); askPassword(); };
+function goPlayerHub(){ hubShow('hubWho'); hubFetchRoster(); }
+function showRole(){ try{sessionStorage.removeItem('coachAuthed');}catch(e){} hubShow('roleScreen'); }
+var _hbr=document.getElementById('hBackRole'); if(_hbr) _hbr.onclick=function(e){ e.preventDefault(); showRole(); };
+var _hbr2=document.getElementById('hBackRole2'); if(_hbr2) _hbr2.onclick=function(e){ e.preventDefault(); showRole(); };
 
-// start: známe-li hráče, jdeme rovnou na výběr modulu
+// start: role-first; hráče si pamatujeme, trenéra ne (PIN při každém vstupu do trenérského pohledu)
 (function(){
-  const rs=document.getElementById('roleScreen'); if(rs) rs.classList.remove('active');
-  if(hubLoad()) hubPick(); else { hubShow('hubWho'); hubFetchRoster(); }
+  try{sessionStorage.removeItem('coachAuthed');}catch(e){}
+  if(hubLoad()) hubPick(); else hubShow('roleScreen');
 })();
 
 </script></body></html>
