@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IDP CAFC — Týdenní check-in</title>
+<title>IDP CAFC — Týdenní / měsíční check-in</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
@@ -108,17 +108,30 @@
   .back a:hover{color:var(--brand);text-decoration:underline}
   @media (max-width:560px){ .wrap{padding:0 14px 70px} .kpi .num{font-size:28px} }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  .howto{background:var(--ground);border:1px solid var(--hair);border-radius:12px;padding:12px 16px;margin:14px 0}
+  .howto>summary{cursor:pointer;font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:var(--brand);list-style:none;display:flex;align-items:center;gap:8px}
+  .howto>summary::-webkit-details-marker{display:none}
+  .howto>summary .caret{margin-left:auto;color:var(--muted);font-size:11px;letter-spacing:.06em;font-weight:600}
+  .howto[open]>summary .caret::after{content:"sbalit \25B4"}
+  .howto>summary .caret::after{content:"rozbalit \25BE"}
+  .howto-body{margin-top:10px;font-size:13.5px;line-height:1.5;color:var(--ink)}
+  .howto .hw-lead{color:var(--muted);margin:0 0 8px}
+  .howto .hw-item{padding:4px 0 4px 14px;border-left:2px solid var(--hair-strong);margin:5px 0}
+  .howto .hw-sub{font-weight:700;margin:14px 0 4px}
+  .howto .hw-note{margin-top:14px;color:var(--muted);font-size:12.5px}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header class="top">
-    <img class="crest" id="crest" alt="ČAFC">
-    <div>
-      <div class="wordmark">IDP <span class="lock">CAFC</span></div>
-      <div class="tagline">Týdenní check-in — přehled pro trenéry</div>
-    </div>
+    <a href="./?coach" title="Zpět na menu" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;cursor:pointer">
+      <img class="crest" id="crest" alt="CAFC">
+      <div>
+        <div class="wordmark">IDP <span class="lock">CAFC</span></div>
+        <div class="tagline">Týdenní / měsíční check-in — přehled pro trenéry</div>
+      </div>
+    </a>
   </header>
 
   <!-- BRÁNA -->
@@ -155,9 +168,25 @@
     <div class="kpis">
       <div class="kpi"><div class="lbl">Vyplnilo</div><div class="num" id="kVypl">–</div><div class="note" id="kVyplNote"></div></div>
       <div class="kpi"><div class="lbl">Průměr týmu</div><div class="num" id="kPrum">–</div><div class="note" id="kPrumNote"></div></div>
-      <div class="kpi" id="kFlagBox"><div class="lbl">Náročný týden</div><div class="num" id="kFlag">–</div><div class="note">hráčů s nízkým průměrem</div></div>
+      <div class="kpi" id="kFlagBox"><div class="lbl">Náročný týden</div><div class="num" id="kFlag">–</div><div class="note">hráčů v červené zóně</div></div>
       <div class="kpi"><div class="lbl">Zátěž týdne</div><div class="num" id="kLoad">–</div><div class="note">průměr, 1 lehký – 10 vyčerpávající</div></div>
     </div>
+
+    <details class="howto">
+      <summary>ℹ️ Jak číst tenhle přehled <span class="caret"></span></summary>
+      <div class="howto-body">
+        <p class="hw-lead">Čtyři dlaždice nahoře počítají jen z kluků, kteří ten týden vyplnili — ne z celé soupisky.</p>
+        <div class="hw-item"><b>Vyplnilo</b> — kolik kluků ze soupisky odevzdalo. Čím víc, tím víc přehled platí za celý tým. Pod ~70 % ber čísla jen jako vzorek.</div>
+        <div class="hw-item"><b>Průměr týmu („pohoda")</b> — jak se klukům celkově vede: spánek, únava, bolest, stres, nálada, sebedůvěra, chuť do fotbalu, kolektiv. Škála 1–10, <b>vyšší = cítí se líp</b> (špatné otázky jako stres jsou automaticky otočené, nemusíš to řešit). Nečti absolutní číslo — zajímavý je pohyb v čase.</div>
+        <div class="hw-item"><b>Náročný týden (červená zóna)</b> — kolik kluků je na tom zle: buď nízká pohoda, nebo něco v extrému (stres 9–10, kolektiv 1–2…). <b>Menší = líp, ideál 0.</b> Jména najdeš dole v tabulce — s těmi mluv.</div>
+        <div class="hw-item"><b>Zátěž týdne</b> — jak fyzicky náročný jim týden přišel (jejich pocit). 1 = lehký, 10 = vyčerpávající. <b>Vyšší = víc dřeli.</b></div>
+        <p class="hw-sub">Zátěž vs pohoda — nejsou spojené nádoby, čti je proti sobě:</p>
+        <div class="hw-item">vysoká zátěž + <b>držící</b> pohoda = zvládají, adaptují se 👍</div>
+        <div class="hw-item">vysoká zátěž + <b>padající</b> pohoda = přetížení, uber ⚠️</div>
+        <div class="hw-item">nízká zátěž + nízká pohoda = problém není z tréninku (škola / spánek / hlava)</div>
+        <p class="hw-note">První týdny ber jako sběr dat: čti hlavně červenou zónu a jména v tabulce. Průměry a trend (sloupec <b>TREND</b> u hráče, týmový graf) začnou dávat smysl, až bude vyplňovat víc kluků a naskočí víc týdnů.</p>
+      </div>
+    </details>
 
     <!-- NEVYPLNILI -->
     <div class="card">
@@ -311,7 +340,7 @@ function postav(){
   const sel = document.getElementById('fTym');
   sel.innerHTML = tymy.map(t => '<option>' + esc(t) + '</option>').join('');
   if (!tymy.length) sel.innerHTML = '<option>U15</option>';
-  sel.onchange = prekresli;
+  sel.onchange = () => { prekresliTydny(); prekresli(); };
   document.getElementById('fTyden').onchange = prekresli;
   document.getElementById('refreshBtn').onclick = nacti;
   prekresliTydny();
@@ -319,12 +348,14 @@ function postav(){
 }
 function prekresliTydny(){
   const tym = document.getElementById('fTym').value;
+  const sel = document.getElementById('fTyden');
+  const prev = sel.value;
   TYDNY = [...new Set(ROWS.filter(r => r.typ === 'tyden' && (!tym || r.kategorie === tym)).map(r => r.obdobi))]
             .filter(Boolean).sort();
-  const sel = document.getElementById('fTyden');
   sel.innerHTML = TYDNY.length
     ? TYDNY.slice().reverse().map(o => '<option value="' + esc(o) + '">' + esc(obdobiLabel(o)) + '</option>').join('')
     : '<option value="">— zatím žádná data —</option>';
+  if (prev && TYDNY.indexOf(prev) >= 0) sel.value = prev;
 }
 
 /* Poslední vyplnění každého hráče za dané období (duplicity: platí to poslední) */
@@ -345,16 +376,25 @@ function posledniZaObdobi(tym, obdobi){
 }
 
 function skore(r){
-  const p = num(r.prumer);
-  if (p !== null) return p;
   const vals = ITEMS.filter(i => i.scored !== false)
                     .map(i => ({ i, v: num(r[i.id]) }))
                     .filter(x => x.v !== null)
                     .map(x => well(x.i, x.v));
-  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  if (vals.length) return vals.reduce((a, b) => a + b, 0) / vals.length;
+  return num(r.prumer); // záloha pro historické řádky bez jednotlivých hodnot
 }
-function stav(p){
+function kriticke(r){
+  return ITEMS.filter(i => i.scored !== false)
+    .map(i => ({ lab: i.lab, w: (num(r[i.id]) === null ? null : well(i, num(r[i.id]))) }))
+    .filter(x => x.w !== null && x.w <= 2)
+    .sort((a, b) => a.w - b.w)
+    .map(x => x.lab.toLowerCase());
+}
+function stav(r){
+  if (!r) return { t: 'Nevyplnil', c: 'b-none' };
+  const p = skore(r);
   if (p === null) return { t: 'Nevyplnil', c: 'b-none' };
+  if (kriticke(r).length) return { t: 'Náročný týden', c: 'b-crit' };
   if (p <= 4) return { t: 'Náročný týden', c: 'b-crit' };
   if (p <= 6) return { t: 'Slabší týden', c: 'b-warn' };
   return { t: 'Dobrý týden', c: 'b-good' };
@@ -371,7 +411,6 @@ function nejslabsi(r){
 
 /* ===== Hlavní vykreslení ===== */
 function prekresli(){
-  prekresliTydny();
   const tym = document.getElementById('fTym').value;
   const obdobi = document.getElementById('fTyden').value;
   const soupiska = ROSTER.filter(p => !tym || p.kategorie === tym);
@@ -390,7 +429,7 @@ function prekresli(){
   document.getElementById('kPrum').textContent = prumer === null ? '–' : prumer.toFixed(1);
   document.getElementById('kPrumNote').textContent = prumer === null ? 'zatím nic' : 'z 10, vyšší je lepší';
 
-  const kritickych = Object.values(vypl).filter(r => { const p = skore(r); return p !== null && p <= 4; }).length;
+  const kritickych = Object.values(vypl).filter(r => stav(r).c === 'b-crit').length;
   document.getElementById('kFlag').textContent = String(kritickych);
   document.getElementById('kFlagBox').className = 'kpi' + (kritickych ? ' alarm' : '');
 
@@ -418,7 +457,7 @@ function prekresli(){
     return a.s - b.s;
   });
   document.getElementById('tbody').innerHTML = radky.map(x => {
-    const st = stav(x.s);
+    const st = stav(x.r);
     const r = x.r;
     const sek = r ? num(r.sekundy) : null;
     const por = r ? (num(r.poradi) || 0) : 0;

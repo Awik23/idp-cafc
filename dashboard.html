@@ -221,8 +221,8 @@
 
 <div class="wrap" id="wrap">
   <div class="topbar">
-    <button class="backbtn" id="backBtn" onclick="goBack()" title="Zpět">← Zpět</button><img src="" class="crestimg"><div class="label">IDP <span>CAFC</span></div>
-    <a class="tblink" href="./checkin.html">Týdenní check-in ›</a><a class="tblink" href="./">Rozcestník</a>
+    <button class="backbtn" id="backBtn" onclick="goBack()" title="Zpět">← Zpět</button><a href="./?coach" title="Zpět na menu" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:inherit;cursor:pointer"><img src="" class="crestimg"><div class="label">IDP <span>CAFC</span></div></a>
+    <a class="tblink" href="./checkin.html">Týdenní / měsíční check-in ›</a><a class="tblink" href="./">Rozcestník</a>
     <div class="sp"></div>
     <div class="navbtn" id="clubChip" onclick="backToClubs()"><span class="nb-l">Klub</span><b id="clubName">ČAFC</b> ▾</div><div class="navbtn" id="teamChip" onclick="backToTeams()"><span class="nb-l">Tým</span><b id="teamName">U14</b> ▾</div><div class="navbtn pdwrap" id="periodPill" onclick="togglePeriodMenu(event)"><span class="nb-l">Období</span><b id="periodName">—</b> ▾<div class="pdmenu" id="periodMenu"></div></div>
   </div>
@@ -247,8 +247,8 @@ const FOTBAL={
  'Psychologické':['Vidění hry','Kreativita','Výběr místa obecně','Výběr místa v pokutovém území','Odhad na míč','Porozumění taktice','Vnímání spoluhráčů','Organizace / řízení hry','Přepnutí po ztrátě míče','Přepnutí po zisku míče','Rozhodovací schopnost'],
  'Povahové':['Chuť vítězit','Lídrovství','Začleňování se do kolektivu','Chuť pořád chtít míč','Chuť chodit do 1v1','Pracovitost','Chuť učit se novým věcem','Zvládání hry pod tlakem','Práce s chybou','Koncentrace během zápasu','Chuť hrát velké a těžké zápasy']
 };
-const POS_GROUPS=[{name:'Brankáři',color:'#8854d0',codes:['BR','GK']},{name:'Obránci',color:'#C7153E',codes:['O','SB','CB','WB']},{name:'Záložníci',color:'#2d98da',codes:['SZ','KZ','CDM','CM','CAM','SM']},{name:'Útočníci',color:'#4E8C1C',codes:['Ú','WF','ST']}];
-const POS_LABEL={BR:'Brankář',O:'Obránce',SZ:'Střední záložník',KZ:'Krajní záložník','Ú':'Útočník',GK:'Brankář',SB:'Krajní obránce',CB:'Střední obránce',WB:'Krajní ofenzivní bek',CDM:'Defenzivní záložník',CM:'Střední záložník',CAM:'Ofenzivní záložník',SM:'Krajní záložník',WF:'Křídelník',ST:'Útočník'};
+const POS_GROUPS=[{name:'Brankáři',color:'#8854d0',codes:['BR','GK']},{name:'Obránci',color:'#C7153E',codes:['O','SB','CB','WB','LB','RB']},{name:'Záložníci',color:'#2d98da',codes:['SZ','KZ','CDM','CM','CAM','SM']},{name:'Útočníci',color:'#4E8C1C',codes:['Ú','WF','ST']}];
+const POS_LABEL={BR:'Brankář',O:'Obránce',SZ:'Střední záložník',KZ:'Krajní záložník','Ú':'Útočník',GK:'Brankář',SB:'Krajní obránce',CB:'Střední obránce',WB:'Krajní ofenzivní bek',CDM:'Defenzivní záložník',CM:'Střední záložník',CAM:'Ofenzivní záložník',SM:'Krajní záložník',WF:'Křídelník',ST:'Útočník',LB:'Levý obránce',RB:'Pravý obránce'};
 function groupOfPos(code){for(const g of POS_GROUPS){if(g.codes.includes(code))return g.name}return 'Ostatní'}
 const HLAVA_LABELS={player:[{q:'Jak moc se těším na tréninky?',lo:'Vůbec',hi:'Moc'},{q:'Jak moc chci vyhrávat?',lo:'Je mi to jedno',hi:'Nesnáším prohry'},{q:'Jak si věřím, že se můžu zlepšit?',lo:'Nevěřím si',hi:'Určitě se zlepším'}],coach:[{q:'Jak je podle tebe motivovaný?',lo:'Vlažný',hi:'Hoří pro to'},{q:'Jak je soutěživý?',lo:'Je mu to jedno',hi:'Musí vyhrát'},{q:'Jak zvládá nezdar (gól, prohra, chyba)?',lo:'Sype ho to',hi:'Zvedne se hned'}]};
 const TYM_LABELS={player:[{q:'Cítím se v týmu dobře a bezpečně?',lo:'Vůbec',hi:'Úplně'},{q:'Věřím tomu, co spolu na trénincích děláme?',lo:'Moc ne',hi:'Naplno'}],coach:[{q:'Jak je začleněný v týmu?',lo:'Na okraji',hi:'Součást party'},{q:'Jak spolupracuje se spoluhráči?',lo:'Sólista',hi:'Týmový hráč'}]};
@@ -315,16 +315,26 @@ function selectPeriod(period,season,short){
 }
 let curClub='cafc', curTeam='';
 
+const IDP_CACHE_KEY='idp_data_cache_v1', IDP_CACHE_FRESH=30000;
+function applyData_(p){ DB.players=p.players||[]; DB.coaches=p.coaches||[]; DB.responses=p.responses||[]; }
 function loadData(cb){
+  // 1) okamžitě posloužit z cache (stejná doména jako index → sdílí ji prefetch)
+  let served=false, age=Infinity;
+  try{ const raw=sessionStorage.getItem(IDP_CACHE_KEY);
+    if(raw){ const c=JSON.parse(raw); if(c&&c.p){ applyData_(c.p); age=Date.now()-(c.t||0); served=true; cb&&cb(); } }
+  }catch(e){}
+  if(served && age<IDP_CACHE_FRESH) return; // čerstvá cache → není co stahovat
+  // 2) stáhnout (poprvé = s loading hláškou; jinak tiché doplnění pro příště)
   const cbName='idpData_'+Date.now();
   window[cbName]=function(res){
-    try{ if(res&&res.ok){ DB.players=res.players||[]; DB.coaches=res.coaches||[]; DB.responses=res.responses||[]; } }catch(e){}
-    delete window[cbName]; const s=document.getElementById(cbName); if(s)s.remove();
-    cb&&cb();
+    try{ if(res&&res.ok){ applyData_(res);
+      try{ sessionStorage.setItem(IDP_CACHE_KEY, JSON.stringify({t:Date.now(), p:{players:DB.players,coaches:DB.coaches,responses:DB.responses}})); }catch(e){} } }catch(e){}
+    delete window[cbName]; const sc=document.getElementById(cbName); if(sc)sc.remove();
+    if(!served) cb&&cb();
   };
   const s=document.createElement('script'); s.id=cbName;
-  s.src=API_URL+'?action=data&callback='+cbName;
-  s.onerror=function(){ cb&&cb(); };
+  s.src=API_URL+'?action=data&callback='+cbName+'&t='+Date.now();
+  s.onerror=function(){ if(!served) cb&&cb(); };
   document.body.appendChild(s);
 }
 

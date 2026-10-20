@@ -74,7 +74,7 @@
   .lv-good{color:var(--good);background:var(--good-bg)} .lv-good .dot{background:var(--good)}
   .lv-warn{color:var(--warn);background:var(--warn-bg)} .lv-warn .dot{background:var(--warn)}
   .lv-crit{color:var(--crit);background:var(--crit-bg)} .lv-crit .dot{background:var(--crit)}
-  .track{height:9px;border-radius:99px;margin-top:10px;background:linear-gradient(90deg,var(--crit) 0 30%,var(--warn) 30% 60%,var(--good) 60% 100%);position:relative;opacity:.85}
+  .track{height:9px;border-radius:99px;margin-top:10px;background:linear-gradient(90deg,var(--crit) 0 40%,var(--warn) 40% 60%,var(--good) 60% 100%);position:relative;opacity:.85}
   .needle{position:absolute;top:-3px;width:4px;height:15px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--surface);transition:left .25s cubic-bezier(.2,.7,.2,1)}
   .meter-note{font-size:11.5px;color:var(--faint);margin-top:7px;line-height:1.35}
 
@@ -124,12 +124,14 @@
 .back{margin:0 0 14px;font-size:14px}
 .back a{color:#8a8a8a;text-decoration:none}
 .back a:hover{text-decoration:underline}
+  @keyframes itemflash{0%{box-shadow:0 0 0 0 rgba(199,21,62,0)}15%{box-shadow:0 0 0 3px rgba(199,21,62,.55)}100%{box-shadow:0 0 0 0 rgba(199,21,62,0)}}
+  .item.flash{animation:itemflash 1.5s ease-out;border-radius:12px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <img class="crest" id="crest" alt="ČAFC">
+    <img class="crest" id="crest" alt="CAFC">
     <div>
       <div class="wordmark">IDP <span class="lock">CAFC</span></div>
       <div class="tagline" id="tagline">Týdenní check-in</div>
@@ -146,10 +148,9 @@
   <!-- SETUP -->
   <div id="setup" class="card" hidden>
     <h1 id="setupTitle">Kdo jsi?</h1>
-    <p class="lead" id="setupLede">Vyber se ze soupisky — stačí jednou, příště už jdeš rovnou na check-in.</p>
-    <div class="field" id="f_klub"><label for="s_klub">Klub</label><select id="s_klub"></select></div>
-    <div class="field" id="f_kat"><label for="s_kat">Kategorie</label><select id="s_kat" disabled></select></div>
-    <div class="field" id="f_hrac"><label for="s_hrac">Jméno</label><select id="s_hrac" disabled></select></div>
+    <p class="lead" id="setupLede">Zadej svoje FAČR číslo — stačí jednou, příště jdeš rovnou na check-in.</p>
+    <div class="field" id="f_facr"><label for="s_facr">Tvoje FAČR číslo</label><input type="text" id="s_facr" inputmode="numeric" autocomplete="off" placeholder="např. 12100944"></div>
+    <div class="field" id="s_resolved" hidden style="color:#4E8C1C;font-weight:600"></div>
     <div class="consent">
       <label class="chk"><input type="checkbox" id="s_consent"><span>Souhlasím se zpracováním svých odpovědí (GDPR)</span></label>
       <p class="disc">Odpovědi slouží trenérovi jako zpětná vazba o tvé formě a pohodě. Zpracování probíhá v souladu se zásadami ochrany osobních údajů klubu, který má potřebné souhlasy zajištěné.</p>
@@ -297,7 +298,7 @@ function askConsent(p){
   show('setup');
   const t=document.getElementById('setupTitle'); if(t) t.textContent='Ještě jedna věc';
   const l=document.getElementById('setupLede'); if(l) l.textContent=p.jmeno+' '+p.prijmeni+' — než začneš, potvrď souhlas. Příště už se neptáme.';
-  ['f_klub','f_kat','f_hrac'].forEach(id=>{const e=document.getElementById(id); if(e) e.hidden=true;});
+  ['f_facr','s_resolved'].forEach(id=>{const e=document.getElementById(id); if(e) e.hidden=true;});
   const cons=document.getElementById('s_consent'), start=document.getElementById('startBtn');
   cons.checked=false; start.disabled=true; start.textContent='Souhlasím a pokračovat';
   cons.onchange=function(){ start.disabled=!cons.checked; };
@@ -320,19 +321,32 @@ function uniq(a){return a.filter((v,i)=>a.indexOf(v)===i);}
 
 function buildSetup(){
   show('setup');
-  const kSel=document.getElementById('s_klub'),katSel=document.getElementById('s_kat'),hSel=document.getElementById('s_hrac'),cons=document.getElementById('s_consent'),start=document.getElementById('startBtn');
-  const klubs=uniq(roster.map(p=>p.klub));
-  kSel.innerHTML='<option value="">— vyber —</option>'+klubs.map(k=>`<option>${k}</option>`).join('');
-  function refresh(){ start.disabled=!(kSel.value&&katSel.value&&hSel.value&&cons.checked); }
-  kSel.onchange=function(){ const kats=uniq(roster.filter(p=>p.klub===kSel.value).map(p=>p.kategorie));
-    katSel.innerHTML='<option value="">— vyber —</option>'+kats.map(k=>`<option>${k}</option>`).join(''); katSel.disabled=false;
-    hSel.innerHTML=''; hSel.disabled=true; refresh(); };
-  katSel.onchange=function(){ const hs=roster.filter(p=>p.klub===kSel.value&&p.kategorie===katSel.value).sort((a,b)=>(a.prijmeni+a.jmeno).localeCompare(b.prijmeni+b.jmeno,'cs'));
-    hSel.innerHTML='<option value="">— vyber —</option>'+hs.map(p=>`<option value="${p.facr_id}">${p.prijmeni} ${p.jmeno}</option>`).join(''); hSel.disabled=false; refresh(); };
-  hSel.onchange=refresh; cons.onchange=refresh;
-  start.onclick=function(){ const p=roster.find(x=>x.facr_id===hSel.value); if(!p)return;
+  ['f_facr','s_resolved'].forEach(id=>{const e=document.getElementById(id); if(e) e.hidden=false;});
+  const t=document.getElementById('setupTitle'); if(t) t.textContent='Kdo jsi?';
+  const l=document.getElementById('setupLede'); if(l) l.textContent='Zadej svoje FAČR číslo — stačí jednou, příště jdeš rovnou na check-in.';
+  const inp=document.getElementById('s_facr'), res=document.getElementById('s_resolved');
+  const consWrap=document.querySelector('#setup .consent'), cons=document.getElementById('s_consent'), start=document.getElementById('startBtn');
+  function norm(x){ return String(x==null?'':x).replace(/\s+/g,'').trim(); }
+  function find(){ const v=norm(inp.value); return v ? roster.find(p=>norm(p.facr_id)===v) : null; }
+  function refresh(){
+    const p=find();
+    if(p){ res.hidden=false; res.textContent='✓ '+p.jmeno+' '+p.prijmeni+(p.kategorie?(' · '+p.kategorie):''); }
+    else { res.hidden=true; res.textContent=''; }
+    const needC = p && !p.gdpr;
+    if(consWrap) consWrap.hidden = !needC;
+    start.disabled = !(p && (!needC || cons.checked));
+  }
+  cons.checked=false; start.textContent='Uložit a pokračovat';
+  inp.oninput=refresh; cons.onchange=refresh;
+  start.onclick=function(){ const p=find(); if(!p) return;
     profile={facr_id:p.facr_id,prijmeni:p.prijmeni,jmeno:p.jmeno,klub:p.klub,kategorie:p.kategorie,consent:true};
-    saveProfile(profile); cat=levelFromKat(profile.kategorie); state.values={};state.tags=[];state.reflect={};state.coachMsg="";state.tagOther=""; enterApp(); };
+    saveProfile(profile); cat=levelFromKat(profile.kategorie);
+    state.values={};state.tags=[];state.reflect={};state.coachMsg="";state.tagOther="";
+    if(!p.gdpr){ try{ window.__noopCons=function(){}; const sc=document.createElement('script'); sc.src=ROSTER_URL+'?action=consent&facr_id='+encodeURIComponent(p.facr_id)+'&callback=__noopCons&t='+Date.now(); document.body.appendChild(sc);}catch(e){} }
+    enterApp(); };
+  inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); if(!start.disabled) start.click(); } };
+  try{ inp.focus(); }catch(e){}
+  refresh();
 }
 
 function enterApp(){ show('app'); state.openTs=Date.now(); paintProfile(); try{document.getElementById('pweek').value=isoWeek(new Date());}catch(e){} render(); }
@@ -368,7 +382,7 @@ function render(){
     gi.forEach(i=>{
       if(i.type==="tags"){ sec.appendChild(renderTags(i)); return; }
       n++; const num=n, v=state.values[i.id];
-      const wrap=document.createElement("div"); wrap.className="item"+(v==null?" unset":(isBad(i,v)?" low":""));
+      const wrap=document.createElement("div"); wrap.className="item"+(v==null?" unset":(isBad(i,v)?" low":"")); wrap.dataset.qid=String(i.id); wrap.dataset.qnum=String(num);
       const q=document.createElement("div"); q.className="q"; q.innerHTML=`<span class="lab"><span class="num">${num}.</span>${labelOf(i)}</span><span class="val">${v==null?"–":v}</span>`;
       wrap.appendChild(q);
       if(helpOf(i)){const h=document.createElement("p");h.className="help";h.textContent=helpOf(i);wrap.appendChild(h);}
@@ -429,7 +443,8 @@ function update(){
   const slabsi=scored.filter(i=>state.values[i.id]!=null&&well(i,state.values[i.id])<=4)
                      .sort((a,b)=>well(a,state.values[a.id])-well(b,state.values[b.id]));
   const nm=a=>a.slice(0,3).map(i=>labelOf(i).toLowerCase()).join(", ");
-  if(avg<=4) setFlag("crit","Náročný týden",slabsi.length?`Nejvíc tě trápí: ${nm(slabsi)}.`:"Těžký týden.");
+  const krit=slabsi.filter(i=>well(i,state.values[i.id])<=2);
+  if(avg<=4||krit.length) setFlag("crit","Náročný týden",krit.length?`Pozor na: ${nm(krit)}.`:(slabsi.length?`Nejvíc tě trápí: ${nm(slabsi)}.`:"Těžký týden."));
   else if(avg<=6) setFlag("warn","Slabší týden",slabsi.length?`Slabší místa: ${nm(slabsi)}.`:"Pár věcí drhne, ale dá se.");
   else setFlag("good","Dobrý týden",slabsi.length?`Celkově fajn, jen hlídej: ${nm(slabsi)}.`:"Všechno v pohodě — jen tak dál.");
 }
@@ -516,7 +531,19 @@ document.querySelectorAll(".seg button").forEach(b=>{ b.onclick=function(){ docu
 document.getElementById("submitBtn").onclick=function(){
   const monthly=mode==="mesic";
   const items=currentItems().filter(i=>i.type!=="tags");
-  if(!monthly){ const need=items.filter(i=>state.values[i.id]==null); if(need.length){ setMsg("Vyplň prosím všechny otázky ("+need.length+" zbývá).",true); return; } }
+  if(!monthly){
+    const need=items.filter(i=>state.values[i.id]==null);
+    if(need.length){
+      const needIds=need.map(i=>String(i.id));
+      const missWraps=[...form.querySelectorAll('.item')].filter(w=>needIds.indexOf(w.dataset.qid)>=0);
+      const nums=missWraps.map(w=>w.dataset.qnum).filter(Boolean);
+      setMsg(need.length===1 ? ('Ještě nemáš vyplněnou otázku č. '+nums.join(', ')+'. Skáču na ni.')
+                             : ('Ještě nemáš vyplněno: č. '+nums.join(', ')+'. Skáču na první.'), true);
+      const first=missWraps[0];
+      if(first){ first.scrollIntoView({behavior:'smooth',block:'center'}); first.classList.remove('flash'); void first.offsetWidth; first.classList.add('flash'); setTimeout(function(){ first.classList.remove('flash'); },1600); }
+      return;
+    }
+  }
   else { const any=REFLECT[cat].some(([id])=>state.reflect[id])||state.coachMsg.trim(); if(!any){ setMsg("Napiš aspoň něco do ohlédnutí nebo vzkazu.",true); return; } }
   const btn=document.getElementById("submitBtn"); btn.disabled=true; setMsg("Odesílám…",false);
   const scored=items.filter(i=>i.scored!==false&&state.values[i.id]!=null).map(i=>well(i,state.values[i.id]));

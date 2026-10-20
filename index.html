@@ -44,6 +44,8 @@
   .role-wrap{text-align:center;padding:46px 22px 30px}
   .role-wrap img.crest{width:112px;height:auto;margin:0 auto 20px;display:block}
   .role-wrap .eyebrow{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-weight:700;font-size:13px;color:var(--wine);margin-bottom:6px}
+  .hello-name{display:block;font-size:32px;line-height:1.03;color:var(--wine);letter-spacing:.01em;margin-top:4px;margin-bottom:2px}
+  #hubPick .display{font-size:26px;margin-bottom:16px}
   .role-wrap h1{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;font-weight:700;font-size:38px;line-height:1.03;margin-bottom:10px}
   .role-wrap p{color:var(--muted);font-size:15px;max-width:44ch;margin:0 auto 30px}
   .role-cards{display:flex;flex-direction:column;gap:14px;max-width:400px;margin:0 auto}
@@ -293,11 +295,12 @@
       <img class="crest" alt="CAFC logo">
       <div class="eyebrow">Individuální plán rozvoje</div>
       <h1 class="display">Vítej!<br>Kdo jsi?</h1>
-      <p>Vyber se ze soupisky. Stačí jednou — příště už jdeš rovnou dál.</p>
+      <p>Zadej svoje FAČR číslo. Stačí jednou — příště jdeš rovnou dál.</p>
       <div class="hub-form">
-        <label for="hKlub">Klub</label><select id="hKlub"></select>
-        <label for="hKat">Kategorie</label><select id="hKat" disabled></select>
-        <label for="hHrac">Jméno</label><select id="hHrac" disabled></select>
+        <label for="hFacr">Tvoje FAČR číslo</label>
+        <input type="text" id="hFacr" inputmode="numeric" autocomplete="off" placeholder="např. 12100944">
+        <div class="fhint" style="margin:-2px 0 4px">Najdeš ho v průkazu FAČR nebo u trenéra. Zadáváš ho jen poprvé.</div>
+        <div id="hResolved" hidden style="font-weight:600;color:var(--green-dark);margin:2px 0 6px"></div>
         <div id="hConsentWrap" hidden>
           <label class="hub-chk"><input type="checkbox" id="hConsent"><span>Souhlasím se zpracováním svých odpovědí (GDPR)</span></label>
           <p class="hub-disc">Odpovědi slouží trenérovi jako zpětná vazba o tvé formě a pohodě. Zpracování probíhá v souladu se zásadami ochrany osobních údajů klubu.</p>
@@ -317,7 +320,7 @@
       <div class="role-cards">
         <div class="role-card hrac" id="cardTaping">
           <div class="ricon">📅</div>
-          <div class="rtx"><div class="rt">Týdenní check-in</div><div class="rs">10 otázek, zabere minutu · každý týden</div></div>
+          <div class="rtx"><div class="rt">Týdenní / měsíční check-in</div><div class="rs">10 otázek, zabere minutu · týdně + měsíční ohlédnutí</div></div>
           <div class="rarrow">›</div>
         </div>
         <div class="role-card hrac" id="cardIdp">
@@ -366,7 +369,7 @@
         </div>
         <div class="role-card hrac" onclick="location.href='checkin.html'">
           <div class="ricon">📅</div>
-          <div class="rtx"><div class="rt">Týdenní check-in — přehled</div><div class="rs">Pohoda a forma hráčů po týdnech</div></div>
+          <div class="rtx"><div class="rt">Týdenní / měsíční check-in — přehled</div><div class="rs">Pohoda a forma hráčů v čase</div></div>
           <div class="rarrow">›</div>
         </div>
         <div class="role-card hrac" onclick="location.href='dashboard.html'">
@@ -555,7 +558,7 @@
       <p class="lede" style="margin:6px auto 0">Díky! Hodnocení <strong id="cDonePlayer">hráče</strong> je uložené. Až vyplní i hráč sám sebe, porovnáme oba pohledy na pohovoru.</p>
       <div class="period-auto" id="cDonePeriod" style="max-width:340px;margin:16px auto 0;text-align:center">—</div>
       <div class="save-actions" style="justify-content:center;margin-top:20px">
-        <button class="btn btn-ghost" onclick="location.reload()">Hodnotit dalšího hráče</button>
+        <button class="btn btn-ghost" onclick="location.href='./?coach&new=1'">Hodnotit dalšího hráče</button>
       </div>
     </div>
   </div>
@@ -996,7 +999,7 @@ function pBuildOpen(host,arr,prefix){const rov=prefix==='h'?'hlava':'tym';
   host.appendChild(w)})}
 let pToastT;function pBump(t){document.getElementById('xpNum').textContent=xp;const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');clearTimeout(pToastT);pToastT=setTimeout(()=>el.classList.remove('show'),1100)}
 function toggleXpInfo(){document.getElementById('xpinfo').classList.toggle('show')}
-function goHome(){if(confirm('Vrátit se na úvod (výběr hráč / trenér)? Rozepsané odpovědi se ztratí.'))location.reload();}
+function goHome(){if(confirm('Vrátit se do menu? Rozepsané odpovědi se ztratí.')){clearDraft();if(ACTIVE_ROLE==='trener'){hideAll();coachMenu();}else{location.reload();}}}
 function backToHub(){var id=(typeof hubLoad==='function')&&hubLoad();if(id){hubShow('hubPick');}else{location.href='./';}}
 function toggleLegend(){const b=document.getElementById('legendBody'),c=document.getElementById('legendCaret');if(!b)return;const open=b.style.display!=='none';b.style.display=open?'none':'block';c.textContent=open?'rozbalit ▾':'sbalit ▲';}
 function pUpdateProg(){const pct=Math.round((pCur/(P_SCREENS.length-1))*100);
@@ -1166,9 +1169,9 @@ function cBuildOpen(host,arr,prefix){const rov=prefix==='h'?'hlava':'tym';arr.fo
   const ta=w.querySelector('textarea');ta.addEventListener('input',()=>{cOpenVal[key]=ta.value.trim();cUpdateMissing();});host.appendChild(w)})}
 function cUpdateProg(){const pct=Math.round((cCur/(C_SCREENS.length-1))*100);
  document.getElementById('cProg').style.width=pct+'%';document.getElementById('cPct').textContent=pct+' %';document.getElementById('cLabel').textContent=C_LABELS[cCur]}
-function cStart(){cCur=0;ACTIVE_ROLE='trener';document.getElementById('cIntro').classList.add('active');
+function cStart(){hideAll();cCur=0;ACTIVE_ROLE='trener';document.getElementById('cIntro').classList.add('active');
  document.getElementById('cNav').style.display='flex';document.getElementById('cBack').style.visibility='hidden';
- document.getElementById('cTop').style.display='none';cUpdateProg();}
+ document.getElementById('cTop').style.display='none';cUpdateProg();window.scrollTo({top:0});}
 function cGo(dir){const next=cCur+dir;if(next<0||next>=C_SCREENS.length)return;
  if(dir>0&&cCur===1){const co=document.getElementById('cCoach').value,pl=document.getElementById('cPlayer').value,pz=document.getElementById('cPozice').value;
    const selP=PLAYERS[+pl];const guestEmpty=selP&&selP.guest&&!(document.getElementById('cGuestName').value||'').trim();
@@ -1535,7 +1538,7 @@ loadLists();
 window.addEventListener('resize',syncRovbarTop);
 document.addEventListener('input', scheduleSaveDraft, true);
 document.addEventListener('change', scheduleSaveDraft, true);
-checkForDraft();
+{const _q=new URLSearchParams(location.search); if(!_q.has('home')&&!_q.has('menu')&&!_q.has('coach')) checkForDraft();}
 
 // ============ HUB — jedna identita pro IDP i Taping ============
 // Soupiska se bere z Roster API (sešit „Redlock — Kadry"), ne z listu v IDP,
@@ -1564,56 +1567,41 @@ function hubFetchRoster(){
 }
 
 function hubBuild(){
-  const kS=document.getElementById('hKlub'), tS=document.getElementById('hKat'), hS=document.getElementById('hHrac');
+  const inp=document.getElementById('hFacr'), res=document.getElementById('hResolved');
   const cW=document.getElementById('hConsentWrap'), cB=document.getElementById('hConsent'), go=document.getElementById('hGo');
-  const klubs=hubUniq(HUB_ROSTER.map(p=>p.klub));
-  kS.innerHTML='<option value="">— vyber —</option>'+klubs.map(k=>'<option>'+k+'</option>').join('');
-  if(klubs.length===1){ kS.value=klubs[0]; }
-
-  function selected(){ return HUB_ROSTER.find(p=>String(p.facr_id)===hS.value); }
+  const msg=document.getElementById('hMsg');
+  function norm(x){ return String(x==null?'':x).replace(/\s+/g,'').trim(); }
+  function find(){ const v=norm(inp.value); return v ? HUB_ROSTER.find(p=>norm(p.facr_id)===v) : null; }
   function refresh(){
-    const p=selected();
-    const potrebaSouhlas = !!p && !p.gdpr;
-    cW.hidden = !potrebaSouhlas;
-    go.disabled = !(p && (!potrebaSouhlas || cB.checked));
+    const p=find();
+    if(p){ res.hidden=false; res.textContent='✓ '+p.jmeno+' '+p.prijmeni+(p.kategorie?(' · '+p.kategorie):''); cW.hidden=!!p.gdpr; }
+    else { res.hidden=true; res.textContent=''; cW.hidden=true; cB.checked=false; }
+    msg.textContent=''; msg.className='hub-msg';
   }
-  function fillKat(){
-    const kats=hubUniq(HUB_ROSTER.filter(p=>p.klub===kS.value).map(p=>p.kategorie));
-    tS.innerHTML='<option value="">— vyber —</option>'+kats.map(k=>'<option>'+k+'</option>').join('');
-    tS.disabled=false; if(kats.length===1) tS.value=kats[0];
-    hS.innerHTML='<option value="">— vyber —</option>'; hS.disabled=true; cW.hidden=true; refresh();
-    if(tS.value) fillHraci();
-  }
-  function fillHraci(){
-    const hs=HUB_ROSTER.filter(p=>p.klub===kS.value&&p.kategorie===tS.value)
-      .sort((a,b)=>(a.prijmeni+a.jmeno).localeCompare(b.prijmeni+b.jmeno,'cs'));
-    hS.innerHTML='<option value="">— vyber —</option>'+hs.map(p=>'<option value="'+p.facr_id+'">'+p.prijmeni+' '+p.jmeno+'</option>').join('');
-    hS.disabled=false; refresh();
-  }
-  kS.onchange=fillKat; tS.onchange=fillHraci; hS.onchange=refresh; cB.onchange=refresh;
-  if(kS.value) fillKat();
-
+  inp.oninput=refresh; cB.onchange=function(){};
+  go.disabled=false; go.textContent='Pokračovat';
+  function ulozit(p){ hubSave({facr_id:p.facr_id,prijmeni:p.prijmeni,jmeno:p.jmeno,klub:p.klub,kategorie:p.kategorie}); hubPick(); }
   go.onclick=function(){
-    const p=selected(); if(!p) return;
-    const ulozit=function(){
-      hubSave({facr_id:p.facr_id,prijmeni:p.prijmeni,jmeno:p.jmeno,klub:p.klub,kategorie:p.kategorie});
-      hubPick();
-    };
-    if(p.gdpr){ ulozit(); return; }
+    const p=find();
+    if(!p){ msg.textContent='Tohle FAČR číslo nemáme na soupisce. Zkontroluj ho, nebo napiš trenérovi.'; msg.className='hub-msg err'; res.hidden=true; return; }
+    if(!p.gdpr && !cB.checked){ cW.hidden=false; msg.textContent='Potvrď prosím souhlas se zpracováním odpovědí.'; msg.className='hub-msg err'; return; }
+    if(p.gdpr){ ulozit(p); return; }
     go.disabled=true; go.textContent='Ukládám…';
     let done=false;
-    window.__hubConsentCb=function(){ done=true; ulozit(); };
-    const s=document.createElement('script');
-    s.src=HUB_ROSTER_URL+'?action=consent&facr_id='+encodeURIComponent(p.facr_id)+'&callback=__hubConsentCb&t='+Date.now();
-    s.onerror=function(){ if(!done) ulozit(); };
-    document.body.appendChild(s);
-    setTimeout(function(){ if(!done) ulozit(); },8000);
+    window.__hubConsentCb=function(){ done=true; ulozit(p); };
+    const s2=document.createElement('script');
+    s2.src=HUB_ROSTER_URL+'?action=consent&facr_id='+encodeURIComponent(p.facr_id)+'&callback=__hubConsentCb&t='+Date.now();
+    s2.onerror=function(){ if(!done) ulozit(p); };
+    document.body.appendChild(s2);
+    setTimeout(function(){ if(!done) ulozit(p); },8000);
   };
+  inp.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); go.click(); } };
+  try{ inp.focus(); }catch(e){}
 }
 
 function hubPick(){
   const id=hubLoad(); if(!id){ hubShow('hubWho'); return; }
-  document.getElementById('hubHello').textContent='Ahoj '+id.jmeno+' '+id.prijmeni;
+  document.getElementById('hubHello').innerHTML='Ahoj <span class="hello-name">'+id.jmeno+' '+id.prijmeni+'</span>';
   hubShow('hubPick');
 }
 
@@ -1621,12 +1609,16 @@ function hubPick(){
 function hubGoIdp(){
   const id=hubLoad();
   hubShow('pIntro'); chooseHrac();
-  if(!id) return;
   const sel=document.getElementById('pPlayer'); if(!sel) return;
+  sel.disabled=false;
+  if(!id) return;
   const hledane=(id.prijmeni+' '+id.jmeno).toLowerCase();
   for(let i=0;i<sel.options.length;i++){
     if(sel.options[i].textContent.toLowerCase().indexOf(hledane)===0){
-      sel.value=sel.options[i].value; pOnPlayerChange(); break;
+      sel.value=sel.options[i].value; pOnPlayerChange();
+      sel.disabled=true;                       // ZÁMEK: hráče určuje FAČR identita
+      const gw=document.getElementById('pGuestWrap'); if(gw) gw.style.display='none';
+      break;
     }
   }
 }
@@ -1639,14 +1631,36 @@ document.getElementById('cardIdp').onclick=hubGoIdp;
 document.getElementById('hNotMe').onclick=function(e){ e.preventDefault(); try{localStorage.removeItem(HUB_KEY);}catch(x){} hubShow('hubWho'); hubFetchRoster(); };
 function goPlayerHub(){ hubShow('hubWho'); hubFetchRoster(); }
 function showRole(){ try{sessionStorage.removeItem('coachAuthed');}catch(e){} hubShow('roleScreen'); }
-function coachMenu(){ hideAll(); var m=document.getElementById('cMenu'); if(m) m.classList.add('active'); }
+let _idpPrefetched=false;
+function prefetchIdpData(){
+  if(_idpPrefetched) return; _idpPrefetched=true;
+  try{ const raw=sessionStorage.getItem('idp_data_cache_v1');
+    if(raw){ const c=JSON.parse(raw); if(c&&c.t&&(Date.now()-c.t)<60000) return; } }catch(e){}
+  if(!API_URL||API_URL.indexOf('http')!==0) return;
+  const cbName='idpPrefetch_'+Date.now();
+  window[cbName]=function(res){
+    try{ if(res&&res.ok){ sessionStorage.setItem('idp_data_cache_v1', JSON.stringify({t:Date.now(), p:{players:res.players||[],coaches:res.coaches||[],responses:res.responses||[]}})); } }catch(e){}
+    try{ delete window[cbName]; }catch(e){} const sc=document.getElementById(cbName); if(sc)sc.remove();
+  };
+  const s=document.createElement('script'); s.id=cbName;
+  s.src=API_URL+'?action=data&callback='+cbName+'&t='+Date.now();
+  s.onerror=function(){ try{ delete window[cbName]; }catch(e){} _idpPrefetched=false; };
+  document.body.appendChild(s);
+}
+function coachMenu(){ hideAll(); var m=document.getElementById('cMenu'); if(m) m.classList.add('active'); prefetchIdpData(); }
 var _hbrc=document.getElementById('hBackRoleCoach'); if(_hbrc) _hbrc.onclick=function(e){ e.preventDefault(); showRole(); };
 var _hbr=document.getElementById('hBackRole'); if(_hbr) _hbr.onclick=function(e){ e.preventDefault(); showRole(); };
 var _hbr2=document.getElementById('hBackRole2'); if(_hbr2) _hbr2.onclick=function(e){ e.preventDefault(); showRole(); };
 
 // start: role-first; hráče si pamatujeme, trenéra ne (PIN při každém vstupu do trenérského pohledu)
 (function(){
+  const q=new URLSearchParams(location.search);
+  if(q.has('coach')){
+    try{ if(sessionStorage.getItem('coachAuthed')==='1'){ hideAll(); if(q.has('new')) cStart(); else coachMenu(); return; } }catch(e){}
+    hubShow('roleScreen'); return;
+  }
   try{sessionStorage.removeItem('coachAuthed');}catch(e){}
+  if(q.has('menu')){ hubShow('roleScreen'); return; }
   if(hubLoad()) hubPick(); else hubShow('roleScreen');
 })();
 
