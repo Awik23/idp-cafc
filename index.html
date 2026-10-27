@@ -306,7 +306,7 @@
           <p class="hub-disc">Odpovědi slouží trenérovi jako zpětná vazba o tvé formě a pohodě. Zpracování probíhá v souladu se zásadami ochrany osobních údajů klubu.</p>
         </div>
         <button class="btn btn-primary" id="hGo" type="button" disabled>Pokračovat</button>
-        <p class="hub-msg" id="hMsg">Načítám soupisku…</p>
+        <p class="hub-msg" id="hMsg">Načítám…</p>
       </div>
       <p class="hub-alt"><a href="#" id="hBackRole">‹ Nejsem hráč — zpět na výběr</a></p>
     </div>
@@ -1545,6 +1545,7 @@ document.addEventListener('change', scheduleSaveDraft, true);
 // aby oba moduly ukazovaly identicky stejný kádr.
 const HUB_KEY = 'redlock_identity';
 let HUB_ROSTER = [];
+let HUB_BUILT=false;
 
 function hubLoad(){ try{ return JSON.parse(localStorage.getItem(HUB_KEY)||'null'); }catch(e){ return null; } }
 function hubSave(o){ try{ localStorage.setItem(HUB_KEY, JSON.stringify(o)); }catch(e){} }
@@ -1553,17 +1554,29 @@ function hubShow(id){ document.querySelectorAll('.screen').forEach(s=>s.classLis
   document.getElementById(id).classList.add('active'); window.scrollTo({top:0}); }
 function hubUniq(a){ return a.filter((v,i)=>a.indexOf(v)===i); }
 
-function hubFetchRoster(){
+function hubFetchRoster(attempt){
+  attempt=attempt||1;
   const msg=document.getElementById('hMsg');
-  let done=false;
-  window.__hubCb=function(res){ done=true;
-    if(res&&res.ok&&res.players&&res.players.length){ HUB_ROSTER=res.players; msg.textContent=''; hubBuild(); }
-    else { msg.textContent='Soupisku se nepodařilo načíst. Obnov stránku.'; msg.className='hub-msg err'; } };
-  const s=document.createElement('script');
-  s.src=HUB_ROSTER_URL+'?action=taping&club=CAFC&team=U15&callback=__hubCb&t='+Date.now();
-  s.onerror=function(){ msg.textContent='Nepodařilo se spojit se soupiskou. Zkontroluj připojení.'; msg.className='hub-msg err'; };
+  if(!HUB_ROSTER.length){ try{ const c=JSON.parse(localStorage.getItem('redlock_roster_cache_v1')||'null'); if(c&&c.players&&c.players.length) hubUseRoster(c.players); }catch(e){} }
+  if(!HUB_BUILT){ msg.className='hub-msg'; msg.textContent = 'Načítám…'; }
+  let done=false; const cb='__hubCb'+Date.now();
+  window[cb]=function(res){ done=true; hubCleanup(cb);
+    if(res&&res.ok&&res.players&&res.players.length){ try{localStorage.setItem('redlock_roster_cache_v1',JSON.stringify({t:Date.now(),players:res.players}));}catch(e){} hubUseRoster(res.players); }
+    else if(!HUB_BUILT){ hubRosterRetry(attempt); } };
+  const s=document.createElement('script'); s.id=cb;
+  s.src=HUB_ROSTER_URL+'?action=taping&club=CAFC&team=U15&callback='+cb+'&t='+Date.now();
+  s.onerror=function(){ done=true; hubCleanup(cb); if(!HUB_BUILT) hubRosterRetry(attempt); };
   document.body.appendChild(s);
-  setTimeout(function(){ if(!done){ msg.textContent='Soupiska neodpovídá. Obnov stránku.'; msg.className='hub-msg err'; } },12000);
+  setTimeout(function(){ if(!done){ hubCleanup(cb); if(!HUB_BUILT) hubRosterRetry(attempt); } },20000);
+}
+function hubUseRoster(players){ HUB_ROSTER=players; if(!HUB_BUILT){ HUB_BUILT=true; const m=document.getElementById('hMsg'); if(m){m.textContent='';m.className='hub-msg';} hubBuild(); } }
+function hubCleanup(cb){ try{delete window[cb];}catch(e){} const el=document.getElementById(cb); if(el)el.remove(); }
+function hubRosterRetry(attempt){
+  if(HUB_BUILT) return;
+  if(attempt<3){ hubFetchRoster(attempt+1); return; }
+  const msg=document.getElementById('hMsg'); msg.className='hub-msg err';
+  msg.innerHTML='Nenačetlo se to. <a href="#" id="hRetry" style="color:inherit;font-weight:700">Zkusit znovu</a> (nejlíp v Chromu na wifi).';
+  const r=document.getElementById('hRetry'); if(r) r.onclick=function(e){ e.preventDefault(); hubFetchRoster(1); };
 }
 
 function hubBuild(){

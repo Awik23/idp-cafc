@@ -139,7 +139,7 @@
   </header>
 
   <!-- LOADING -->
-  <div id="loading" class="card"><p class="msg" id="loadMsg">Načítám soupisku…</p>
+  <div id="loading" class="card"><p class="msg" id="loadMsg">Načítám…</p>
     <div class="actions" id="retryWrap" hidden><button class="btn" id="retryBtn" type="button">Zkusit znovu</button></div>
   </div>
 
@@ -250,24 +250,30 @@ const REFLECT={
 
 /* ===== Stav ===== */
 let roster=[], profile=null, cat="zaklad", mode="tyden";
+let ROSTER_READY=false;
 const state={values:{},tags:[],reflect:{},coachMsg:"",tagOther:""};
 
 /* ===== Načtení soupisky (JSONP) ===== */
-function loadRoster(){
-  show('loading'); document.getElementById('retryWrap').hidden=true;
-  document.getElementById('loadMsg').textContent='Načítám soupisku…';
-  let done=false;
-  window.__rosterCb=function(res){ done=true;
-    if(res&&res.ok&&res.players){ roster=res.players; afterRoster(); }
-    else fail('Backend odpověděl chybou.'); };
-  const s=document.createElement('script');
-  s.src=ROSTER_URL+'?action=taping&club='+ROSTER_CLUB+'&team='+ROSTER_TEAM+'&callback=__rosterCb&t='+Date.now();
-  s.onerror=function(){ fail('Nepodařilo se spojit s backendem.'); };
+function loadRoster(attempt){
+  attempt=attempt||1;
+  if(!ROSTER_READY){ show('loading'); document.getElementById('retryWrap').hidden=true; }
+  if(!ROSTER_READY){ try{ const c=JSON.parse(localStorage.getItem('redlock_roster_cache_v1')||'null'); if(c&&c.players&&c.players.length) useRoster(c.players); }catch(e){} }
+  if(!ROSTER_READY){ const lm=document.getElementById('loadMsg'); lm.className='msg'; lm.textContent = 'Načítám…'; }
+  let done=false; const cb='__rosterCb'+Date.now();
+  window[cb]=function(res){ done=true; rosterClean(cb);
+    if(res&&res.ok&&res.players){ try{localStorage.setItem('redlock_roster_cache_v1',JSON.stringify({t:Date.now(),players:res.players}));}catch(e){} useRoster(res.players); }
+    else if(!ROSTER_READY) rosterRetry(attempt,''); };
+  const s=document.createElement('script'); s.id=cb;
+  s.src=ROSTER_URL+'?action=taping&club='+ROSTER_CLUB+'&team='+ROSTER_TEAM+'&callback='+cb+'&t='+Date.now();
+  s.onerror=function(){ done=true; rosterClean(cb); if(!ROSTER_READY) rosterRetry(attempt,''); };
   document.body.appendChild(s);
-  setTimeout(function(){ if(!done) fail('Backend neodpovídá.'); },12000);
+  setTimeout(function(){ if(!done){ rosterClean(cb); if(!ROSTER_READY) rosterRetry(attempt,''); } },20000);
 }
-function fail(m){ document.getElementById('loadMsg').textContent=m+' Zkontroluj připojení a zkus to znovu.'; document.getElementById('loadMsg').className='msg err'; document.getElementById('retryWrap').hidden=false; }
-document.getElementById('retryBtn').onclick=loadRoster;
+function useRoster(players){ roster=players; if(!ROSTER_READY){ ROSTER_READY=true; afterRoster(); } }
+function rosterClean(cb){ try{delete window[cb];}catch(e){} const el=document.getElementById(cb); if(el)el.remove(); }
+function rosterRetry(attempt,why){ if(ROSTER_READY) return; if(attempt<3){ loadRoster(attempt+1); return; } fail(why); }
+function fail(m){ document.getElementById('loadMsg').textContent='Nenačetlo se to. Zkus to prosím znovu (nejlíp v Chromu na wifi).'; document.getElementById('loadMsg').className='msg err'; document.getElementById('retryWrap').hidden=false; }
+document.getElementById('retryBtn').onclick=function(){loadRoster(1);};
 
 function afterRoster(){
   // 1) hráč přišel z rozcestníku (?f=facr_id) — identitu neřešíme znovu
